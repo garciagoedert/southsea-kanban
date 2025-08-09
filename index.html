@@ -45,29 +45,7 @@
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
-    authDomain: "kanban-652ba.firebaseapp.com",
-    projectId: "kanban-652ba",
-    storageBucket: "kanban-652ba.firebasestorage.app",
-    messagingSenderId: "476390177044",
-    appId: "1:476390177044:web:39e6597eb624006ee06a01",
-    measurementId: "G-KRW331FL5F"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
     <div class="container mx-auto p-4 md:p-6 lg:p-8">
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -206,11 +184,14 @@
         import { getFirestore, collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- PASTE YOUR FIREBASE CONFIGURATION HERE ---
-        // 1. Go to your Firebase project console.
-        // 2. In Project Settings (gear icon), find your web app.
-        // 3. Copy the 'firebaseConfig' object and paste it below.
-        // 4. IMPORTANT: Make sure Firestore is enabled and rules allow writes for authenticated users.
-  
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
         // -------------------------------------------------
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -222,8 +203,30 @@ const firebaseConfig = {
   appId: "1:476390177044:web:39e6597eb624006ee06a01",
   measurementId: "G-KRW331FL5F"
 };
+
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
+  authDomain: "kanban-652ba.firebaseapp.com",
+  projectId: "kanban-652ba",
+  storageBucket: "kanban-652ba.firebasestorage.app",
+  messagingSenderId: "476390177044",
+  appId: "1:476390177044:web:39e6597eb624006ee06a01",
+  measurementId: "G-KRW331FL5F"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
         // --- INITIALIZATION ---
-        // Check if the user has replaced the placeholder values
         if (firebaseConfig.apiKey === "YOUR_API_KEY") {
             document.body.innerHTML = `
                 <div class="flex items-center justify-center h-screen bg-gray-900 text-white">
@@ -240,11 +243,13 @@ const firebaseConfig = {
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Use the Firebase App ID as a unique identifier for the public data path.
+        const appId = firebaseConfig.appId || 'default-kanban-app';
 
         // --- GLOBAL STATE ---
         let prospects = [];
         let filteredProspects = [];
-        let currentUserId = null;
         let prospectsListener = null;
 
         const COLUMNS = {
@@ -266,26 +271,24 @@ const firebaseConfig = {
         // --- AUTHENTICATION ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUserId = user.uid;
+                // User is signed in (anonymously). Now we can fetch the shared data.
                 setupProspectsListener();
             } else {
                 try {
                     await signInAnonymously(auth);
                 } catch (error) {
                     console.error("Anonymous Authentication Error:", error);
-                    kanbanBoard.innerHTML = `<p class="text-red-400 text-center col-span-full">Erro de autenticação. Não é possível carregar os dados.</p>`;
+                    kanbanBoard.innerHTML = `<p class="text-red-400 text-center col-span-full">Erro de autenticação. Verifique se o login anônimo está ativo no seu projeto Firebase.</p>`;
                 }
             }
         });
 
         // --- DATA HANDLING (FIRESTORE) ---
         function setupProspectsListener() {
-            if (!currentUserId) return;
-            
-            if (prospectsListener) prospectsListener();
+            if (prospectsListener) prospectsListener(); // Unsubscribe from old listener
 
-            // The path now points to a 'users' collection, making it user-specific.
-            const prospectsCollection = collection(db, 'users', currentUserId, 'prospects');
+            // This path points to a public, shared collection for this specific app instance.
+            const prospectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
             prospectsListener = onSnapshot(prospectsCollection, (snapshot) => {
                 prospects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 applyFilters();
@@ -429,7 +432,7 @@ const firebaseConfig = {
         
         async function updateProspectStatus(prospectId, newStatus) {
             try {
-                const prospectRef = doc(db, 'users', currentUserId, 'prospects', prospectId);
+                const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
                 await updateDoc(prospectRef, { 
                     status: newStatus,
                     updatedAt: serverTimestamp()
@@ -516,8 +519,7 @@ const firebaseConfig = {
         // --- CRUD OPERATIONS ---
         async function handleFormSubmit(e) {
             e.preventDefault();
-            if (!currentUserId) return;
-
+            
             const prospectId = document.getElementById('prospectId').value;
             const data = {
                 empresa: document.getElementById('empresa').value,
@@ -532,13 +534,14 @@ const firebaseConfig = {
             };
 
             try {
+                const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
                 if (prospectId) { // Update
-                    const prospectRef = doc(db, 'users', currentUserId, 'prospects', prospectId);
+                    const prospectRef = doc(collectionPath, prospectId);
                     await updateDoc(prospectRef, data);
                 } else { // Create
                     data.status = 'Pendente';
                     data.createdAt = serverTimestamp();
-                    await addDoc(collection(db, 'users', currentUserId, 'prospects'), data);
+                    await addDoc(collectionPath, data);
                 }
                 closeFormModal();
             } catch (error) {
@@ -549,7 +552,8 @@ const firebaseConfig = {
         
         async function deleteProspect(prospectId) {
             try {
-                await deleteDoc(doc(db, 'users', currentUserId, 'prospects', prospectId));
+                const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
+                await deleteDoc(prospectRef);
             } catch (error) {
                 console.error("Error deleting prospect:", error);
             }
