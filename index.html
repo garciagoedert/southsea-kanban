@@ -183,63 +183,18 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- PASTE YOUR FIREBASE CONFIGURATION HERE ---
+        // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
+            authDomain: "kanban-652ba.firebaseapp.com",
+            projectId: "kanban-652ba",
+            storageBucket: "kanban-652ba.firebasestorage.app",
+            messagingSenderId: "476390177044",
+            appId: "1:476390177044:web:39e6597eb624006ee06a01",
+            measurementId: "G-KRW331FL5F"
         };
-        // -------------------------------------------------
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
-  authDomain: "kanban-652ba.firebaseapp.com",
-  projectId: "kanban-652ba",
-  storageBucket: "kanban-652ba.firebasestorage.app",
-  messagingSenderId: "476390177044",
-  appId: "1:476390177044:web:39e6597eb624006ee06a01",
-  measurementId: "G-KRW331FL5F"
-};
-
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
-  authDomain: "kanban-652ba.firebaseapp.com",
-  projectId: "kanban-652ba",
-  storageBucket: "kanban-652ba.firebasestorage.app",
-  messagingSenderId: "476390177044",
-  appId: "1:476390177044:web:39e6597eb624006ee06a01",
-  measurementId: "G-KRW331FL5F"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+        
         // --- INITIALIZATION ---
-        if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-            document.body.innerHTML = `
-                <div class="flex items-center justify-center h-screen bg-gray-900 text-white">
-                    <div class="text-center p-8 bg-gray-800 rounded-lg shadow-xl">
-                        <h1 class="text-2xl font-bold text-red-500 mb-4">Configuração do Firebase Incompleta</h1>
-                        <p class="mb-2">Por favor, abra este arquivo HTML no seu editor de código.</p>
-                        <p>Encontre o objeto <code class="bg-gray-700 px-2 py-1 rounded">'firebaseConfig'</code> no script e substitua os valores pelos do seu projeto no Firebase.</p>
-                    </div>
-                </div>
-            `;
-            throw new Error("Firebase config is not set. Please follow the instructions in the HTML file.");
-        }
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
