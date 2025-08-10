@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>South Sea - Kanban</title>
+    <title>South Sea - Produção</title>
     <!-- Favicon -->
     <link rel="icon" href="https://www.southsea.com.br/newimag/Ellipse%209.svg">
     
@@ -219,8 +219,8 @@
         let prospectsListener = null;
 
         const COLUMNS = {
-            'Pendente': 'pendente', 'Contactado': 'contactado', 'Reunião': 'reuniao',
-            'Proposta': 'proposta', 'Fechado': 'fechado'
+            'Criação': 'criacao', 'Aprovação': 'aprovacao', 'V1': 'v1',
+            'V2': 'v2', 'Finalização': 'finalizacao'
         };
         const COLUMN_NAMES = Object.keys(COLUMNS);
 
@@ -352,16 +352,16 @@
         }
 
         function updateStats() {
-            const total = filteredProspects.length;
-            const highPriority = filteredProspects.filter(p => p.prioridade >= 4).length;
-            const totalPotential = filteredProspects.reduce((sum, p) => sum + (p.ticketEstimado || 0), 0);
-            const avgTicket = total > 0 ? totalPotential / total : 0;
+            const totalInProduction = filteredProspects.length;
+            const pendingApproval = filteredProspects.filter(p => p.status === 'Aprovação').length;
+            const inFinalization = filteredProspects.filter(p => p.status === 'Finalização').length;
+            const delivered = filteredProspects.filter(p => p.status === 'Entrega').length;
 
             statsContainer.innerHTML = `
-                ${createStatCard('Total de Prospects', total, 'fa-users', 'text-gray-300')}
-                ${createStatCard('Alta Prioridade', highPriority, 'fa-star', 'text-yellow-400')}
-                ${createStatCard('Potencial Total', `R$ ${totalPotential.toLocaleString('pt-BR')}`, 'fa-dollar-sign', 'text-green-500')}
-                ${createStatCard('Ticket Médio', `R$ ${Math.round(avgTicket).toLocaleString('pt-BR')}`, 'fa-chart-pie', 'text-blue-500')}
+                ${createStatCard('Total em Produção', totalInProduction, 'fa-industry', 'text-gray-300')}
+                ${createStatCard('Aguardando Aprovação', pendingApproval, 'fa-clock', 'text-yellow-400')}
+                ${createStatCard('Em Finalização', inFinalization, 'fa-cogs', 'text-blue-500')}
+                ${createStatCard('Entregues', delivered, 'fa-check-circle', 'text-green-500')}
             `;
         }
 
@@ -532,7 +532,7 @@
                     const prospectRef = doc(collectionPath, prospectId);
                     await updateDoc(prospectRef, data);
                 } else { // Create
-                    data.status = 'Pendente';
+                    data.status = 'Produção // V1';
                     data.createdAt = serverTimestamp();
                     await addDoc(collectionPath, data);
                 }
