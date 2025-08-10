@@ -673,58 +673,6 @@
         }
 
         // --- UI LISTENERS ---
-        function setupUIListeners() {
-            // Sidebar toggle
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            const menuToggle = document.getElementById('menu-toggle');
-            const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
-            const backdrop = document.getElementById('sidebar-backdrop');
-
-            if (sidebar && menuToggle && sidebarCloseBtn && backdrop) {
-                const toggleSidebar = () => {
-                    const isHidden = sidebar.classList.contains('-translate-x-full');
-                    if (isHidden) {
-                        sidebar.classList.remove('-translate-x-full');
-                        backdrop.classList.remove('hidden');
-                        if (window.innerWidth >= 768) { 
-                             mainContent.classList.add('md:ml-64');
-                        }
-                    } else {
-                        sidebar.classList.add('-translate-x-full');
-                        backdrop.classList.add('hidden');
-                        if (window.innerWidth >= 768) {
-                            mainContent.classList.remove('md:ml-64');
-                        }
-                    }
-                };
-                menuToggle.addEventListener('click', toggleSidebar);
-                sidebarCloseBtn.addEventListener('click', toggleSidebar);
-                backdrop.addEventListener('click', toggleSidebar);
-            }
-
-            // Modal Buttons
-            document.getElementById('addProspectBtnHeader')?.addEventListener('click', () => openFormModal());
-            document.getElementById('exportBtnSidebar')?.addEventListener('click', exportData);
-            document.getElementById('importBtnSidebar')?.addEventListener('click', openImportModal);
-            
-            // Form and Modal controls
-            document.getElementById('closeFormModalBtn').addEventListener('click', closeFormModal);
-            document.getElementById('cancelFormBtn').addEventListener('click', closeFormModal);
-            prospectForm.addEventListener('submit', handleFormSubmit);
-            document.getElementById('closeImportModalBtn').addEventListener('click', closeImportModal);
-            document.getElementById('cancelImportBtn').addEventListener('click', closeImportModal);
-            document.getElementById('processImportBtn').addEventListener('click', handleImport);
-
-            // Filters
-            document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-            document.getElementById('priorityFilter').addEventListener('change', applyFilters);
-            document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('priorityFilter').value = '';
-                applyFilters();
-            });
-        }
         
         // --- INITIALIZE APP ---
         async function loadComponents() {

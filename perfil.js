@@ -1,3 +1,23 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
+    authDomain: "kanban-652ba.firebaseapp.com",
+    projectId: "kanban-652ba",
+    storageBucket: "kanban-652ba.firebasestorage.app",
+    messagingSenderId: "476390177044",
+    appId: "1:476390177044:web:39e6597eb624006ee06a01",
+    measurementId: "G-KRW331FL5F"
+};
+
+// --- INITIALIZATION ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 document.addEventListener('DOMContentLoaded', () => {
     const userNameElement = document.getElementById('user-name');
     const userEmailElement = document.getElementById('user-email');
@@ -15,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editDepartmentInput = document.getElementById('edit-department');
     const editLocationInput = document.getElementById('edit-location');
 
+    let currentUser = null;
+
     // Default user data
     const defaultUserData = {
         name: 'Nome do Usuário',
@@ -24,9 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
         location: 'Cidade, Estado'
     };
 
-    // Function to load user data from local storage
-    const loadUserData = () => {
-        const userData = JSON.parse(localStorage.getItem('userProfile')) || defaultUserData;
+    // Function to display user data
+    const displayUserData = (userData) => {
         userNameElement.textContent = userData.name;
         userEmailElement.textContent = userData.email;
         userRoleElement.textContent = userData.role;
@@ -34,15 +55,47 @@ document.addEventListener('DOMContentLoaded', () => {
         userLocationElement.textContent = userData.location;
     };
 
-    // Function to save user data to local storage
-    const saveUserData = (data) => {
-        localStorage.setItem('userProfile', JSON.stringify(data));
-        loadUserData(); // Reload and display updated data
+    // Function to load user data from Firestore
+    const loadUserData = async (userId) => {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+            displayUserData(userDoc.data());
+        } else {
+            // If no profile, use default and save it for the new user
+            await setDoc(userDocRef, defaultUserData);
+            displayUserData(defaultUserData);
+        }
     };
 
+    // Function to save user data to Firestore
+    const saveUserData = async (userId, data) => {
+        const userDocRef = doc(db, 'users', userId);
+        await setDoc(userDocRef, data, { merge: true });
+        displayUserData(data);
+    };
+
+    // Listen for auth state changes
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            loadUserData(currentUser.uid);
+        } else {
+            // Handle user not logged in
+            console.log("User is not logged in.");
+            // Redirect to login page or show a message
+            window.location.href = 'login.html';
+        }
+    });
+
     // Open edit modal
-    editProfileBtn.addEventListener('click', () => {
-        const currentUserData = JSON.parse(localStorage.getItem('userProfile')) || defaultUserData;
+    editProfileBtn.addEventListener('click', async () => {
+        if (!currentUser) return;
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        const currentUserData = userDoc.exists() ? userDoc.data() : defaultUserData;
+
         editNameInput.value = currentUserData.name;
         editEmailInput.value = currentUserData.email;
         editRoleInput.value = currentUserData.role;
@@ -57,8 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Save changes (form submission)
-    profileEditForm.addEventListener('submit', (event) => {
+    profileEditForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!currentUser) return;
+
         const updatedUserData = {
             name: editNameInput.value,
             email: editEmailInput.value,
@@ -66,10 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             department: editDepartmentInput.value,
             location: editLocationInput.value
         };
-        saveUserData(updatedUserData);
+        await saveUserData(currentUser.uid, updatedUserData);
         editProfileModal.classList.add('hidden');
     });
-
-    // Initial load of user data when the page loads
-    loadUserData();
 });

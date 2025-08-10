@@ -22,15 +22,13 @@
 </head>
 <body class="bg-gray-900 text-gray-200 flex h-screen">
     <div id="sidebar-container"></div>
-    <!-- Sidebar Backdrop for mobile -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-black opacity-50 z-30 hidden md:hidden"></div>
     <main id="main-content" class="flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out">
         <div id="header-container"></div>
         <div class="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
             <h1 class="text-3xl font-bold mb-6 text-white text-center">Perfil do Usuário</h1>
             <div class="bg-gray-800 p-6 rounded-lg shadow-md max-w-2xl mx-auto">
                 <div class="flex flex-col items-center mb-6">
-                    <img src="https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?q=80&w=1012&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Foto do Perfil" class="w-32 h-32 rounded-full object-cover mb-4 border-4 border-blue-500">
+                    <img src="default-profile.svg" alt="Foto do Perfil" class="w-32 h-32 rounded-full object-cover mb-4 border-4 border-blue-500">
                     <h2 id="user-name" class="text-2xl font-semibold text-white">Nome do Usuário</h2>
                     <p id="user-email" class="text-gray-400">email@exemplo.com</p>
                 </div>
@@ -74,38 +72,5 @@
         });
     </script>
     <script src="perfil.js"></script>
-
-    <!-- Edit Profile Modal -->
-    <div id="editProfileModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md mx-4 border border-gray-700">
-            <h2 class="text-2xl font-bold text-white mb-6 text-center">Editar Perfil</h2>
-            <form id="profileEditForm" class="space-y-4">
-                <div>
-                    <label for="edit-name" class="block text-gray-300 text-sm font-semibold mb-2">Nome:</label>
-                    <input type="text" id="edit-name" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-blue-500" required>
-                </div>
-                <div>
-                    <label for="edit-email" class="block text-gray-300 text-sm font-semibold mb-2">Email:</label>
-                    <input type="email" id="edit-email" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-blue-500" required>
-                </div>
-                <div>
-                    <label for="edit-role" class="block text-gray-300 text-sm font-semibold mb-2">Cargo:</label>
-                    <input type="text" id="edit-role" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label for="edit-department" class="block text-gray-300 text-sm font-semibold mb-2">Departamento:</label>
-                    <input type="text" id="edit-department" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label for="edit-location" class="block text-gray-300 text-sm font-semibold mb-2">Localização:</label>
-                    <input type="text" id="edit-location" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <div class="flex justify-end space-x-4 mt-6">
-                    <button type="button" id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200">Cancelar</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200">Salvar Alterações</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </body>
 </html>
