@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Usuário</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="perfil.css">
+</head>
+<body>
+    <div id="header-container"></div>
+    <div class="main-container">
+        <div id="sidebar-container"></div>
+        <div class="content">
+            <h1>Perfil do Usuário</h1>
+            <div class="profile-container">
+                <div class="profile-header">
+                    <img src="https://via.placeholder.com/150" alt="Foto do Perfil" class="profile-pic">
+                    <h2 id="user-name">Nome do Usuário</h2>
+                    <p id="user-email">email@exemplo.com</p>
+                </div>
+                <div class="profile-details">
+                    <h3>Informações</h3>
+                    <p><strong>Cargo:</strong> <span id="user-role">Desenvolvedor</span></p>
+                    <p><strong>Departamento:</strong> <span id="user-department">Tecnologia</span></p>
+                    <p><strong>Localização:</strong> <span id="user-location">Cidade, Estado</span></p>
+                </div>
+                <button id="edit-profile-btn">Editar Perfil</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(function(){
+            $("#header-container").load("header.html");
+            $("#sidebar-container").load("sidebar.html");
+        });
+    </script>
+    <script src="perfil.js"></script>
+</body>
+</html>

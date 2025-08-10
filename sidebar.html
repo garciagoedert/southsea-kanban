@@ -5,24 +5,31 @@
             <i class="fas fa-times"></i>
         </button>
     </div>
-    <nav class="flex-grow p-4 space-y-2">
-         <button id="addProspectBtnSidebar" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2 justify-center md:hidden">
-            <i class="fas fa-plus"></i> Novo Prospect
-        </button>
-         <button id="importBtnSidebar" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 justify-center">
-            <i class="fas fa-upload"></i> Importar Leads
-        </button>
-        <button id="exportBtnSidebar" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 justify-center">
-            <i class="fas fa-download"></i> Exportar CSV
-        </button>
-        <a href="https://www.southsea.com.br/interno.html" target="_blank" rel="noopener" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 justify-center">
-            <i class="fas fa-link"></i> Links internos
-        </a>
-        <a href="producao.html" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 justify-center text-base shadow-lg">
-            <i class="fas fa-arrow-right"></i> Ir para Produção
-        </a>
-        <a href="index.html" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 justify-center text-base shadow-lg">
-            <i class="fas fa-arrow-left"></i> Ir para Prospecção
-        </a>
+    <nav class="flex-grow p-4 flex flex-col">
+        <div class="flex-grow space-y-2">
+            <a href="index.html" class="w-full flex items-center justify-between bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200">
+                <span><i class="fas fa-tasks w-6"></i> Prospecção</span>
+                <span id="prospect-actions" class="hidden items-center gap-3">
+                    <button id="importBtnSidebar" class="text-gray-300 hover:text-white" title="Importar Leads">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <button id="exportBtnSidebar" class="text-gray-300 hover:text-white" title="Exportar CSV">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </span>
+            </a>
+            <a href="producao.html" class="w-full flex items-center bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200">
+                <i class="fas fa-cogs w-6"></i> Produção
+            </a>
+        </div>
+        <div class="space-y-2">
+            <a href="https://www.southsea.com.br/interno.html" target="_blank" rel="noopener" class="w-full flex items-center bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200">
+                <i class="fas fa-link w-6"></i> Links internos
+            </a>
+            <a href="perfil.html" class="w-full flex items-center bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200">
+                <i class="fas fa-user w-6"></i> Perfil
+            </a>
+        </div>
+        <div class="mt-auto"></div>
     </nav>
 </aside>
