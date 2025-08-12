@@ -194,6 +194,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { duplicateCardToProduction } from './production.js';
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -411,10 +412,17 @@
         async function updateProspectStatus(prospectId, newStatus) {
             try {
                 const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
-                await updateDoc(prospectRef, { 
+                await updateDoc(prospectRef, {
                     status: newStatus,
                     updatedAt: serverTimestamp()
                 });
+
+                if (newStatus === 'Fechado') {
+                    const prospect = prospects.find(p => p.id === prospectId);
+                    if (prospect) {
+                        await duplicateCardToProduction(prospect);
+                    }
+                }
             } catch (error) {
                 console.error("Error updating status:", error);
             }
