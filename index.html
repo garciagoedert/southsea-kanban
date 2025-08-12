@@ -232,7 +232,6 @@
         const formModal = document.getElementById('formModal');
         const prospectForm = document.getElementById('prospectForm');
         const confirmModal = document.getElementById('confirmModal');
-        const loginPage = document.getElementById('login-page');
         const kanbanContainer = document.getElementById('kanban-container');
         const importModal = document.getElementById('importModal');
         
@@ -254,21 +253,6 @@
                 }
             }
         });
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorEl = document.getElementById('login-error');
-
-            if (email === 'marketing@southsea.com.br' && password === 'Southsea@!') {
-                sessionStorage.setItem('isLoggedIn', 'true');
-                errorEl.classList.add('hidden');
-                showKanban();
-            } else {
-                errorEl.classList.remove('hidden');
-            }
-        }
 
         // --- DATA HANDLING (FIRESTORE) ---
         function setupProspectsListener() {
@@ -712,3 +696,4 @@
         });
     </script>
 </body>
+</html>
