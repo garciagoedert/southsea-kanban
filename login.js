@@ -9,6 +9,7 @@ function handleLogin(e) {
     // Hardcoded credentials for simplicity
     if (email === 'marketing@southsea.com.br' && password === 'Southsea@!') {
         sessionStorage.setItem('isLoggedIn', 'true');
+        generalLog.add(email, 'Login', 'User logged in successfully');
         errorEl.classList.add('hidden');
         window.location.href = 'index.html';
     } else {

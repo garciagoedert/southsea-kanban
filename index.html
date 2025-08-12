@@ -395,15 +395,17 @@
         }
         
         async function updateProspectStatus(prospectId, newStatus) {
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
+            const prospect = prospects.find(p => p.id === prospectId);
+            const oldStatus = prospect ? prospect.status : 'N/A';
             try {
                 const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
                 await updateDoc(prospectRef, {
                     status: newStatus,
                     updatedAt: serverTimestamp()
                 });
-
+                generalLog.add(user, 'Move Card', `Card "${prospect.empresa}" moved from ${oldStatus} to ${newStatus}`);
                 if (newStatus === 'Fechado') {
-                    const prospect = prospects.find(p => p.id === prospectId);
                     if (prospect) {
                         await duplicateCardToProduction(prospect);
                     }
@@ -538,15 +540,18 @@
                 updatedAt: serverTimestamp()
             };
 
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
             try {
                 const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
                 if (prospectId) { // Update
                     const prospectRef = doc(collectionPath, prospectId);
                     await updateDoc(prospectRef, data);
+                    generalLog.add(user, 'Update Card', `Card "${data.empresa}" updated`);
                 } else { // Create
                     data.status = 'Pendente';
                     data.createdAt = serverTimestamp();
                     await addDoc(collectionPath, data);
+                    generalLog.add(user, 'Create Card', `New card "${data.empresa}" created`);
                 }
                 closeFormModal();
             } catch (error) {
@@ -556,9 +561,14 @@
         }
         
         async function deleteProspect(prospectId) {
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
+            const prospect = prospects.find(p => p.id === prospectId);
             try {
                 const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
                 await deleteDoc(prospectRef);
+                if(prospect) {
+                    generalLog.add(user, 'Delete Card', `Card "${prospect.empresa}" deleted`);
+                }
             } catch (error) {
                 console.error("Error deleting prospect:", error);
             }
@@ -608,8 +618,10 @@
                 importedCount++;
             });
 
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
             try {
                 await batch.commit();
+                generalLog.add(user, 'Import Leads', `${importedCount} leads imported successfully`);
                 alert(`${importedCount} leads importados com sucesso!`);
                 closeImportModal();
             } catch (error) {
@@ -695,5 +707,6 @@
             });
         });
     </script>
+    <script src="geral_log.js"></script>
 </body>
 </html>

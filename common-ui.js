@@ -78,7 +78,7 @@ async function loadComponents(pageSpecificSetup) {
 
     try {
         const [headerRes, sidebarRes] = await Promise.all([
-            fetch('header.html'),
+            fetch(`header.html?v=${new Date().getTime()}`),
             fetch(`sidebar.html?v=${new Date().getTime()}`)
         ]);
 
