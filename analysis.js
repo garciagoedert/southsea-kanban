@@ -24,34 +24,24 @@ let sectorChart = null;
 
 async function fetchData() {
     const prospectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
-    const productionCollection = collection(db, 'artifacts', appId, 'public', 'data', 'production');
-    const closedCollection = collection(db, 'artifacts', appId, 'public', 'data', 'closed-clients');
-
-    const [prospectsSnapshot, productionSnapshot, closedSnapshot] = await Promise.all([
-        getDocs(prospectsCollection),
-        getDocs(productionCollection),
-        getDocs(closedCollection)
-    ]);
-
+    const prospectsSnapshot = await getDocs(prospectsCollection);
     const prospects = prospectsSnapshot.docs.map(doc => doc.data());
-    const production = productionSnapshot.docs.map(doc => doc.data());
-    const closed = closedSnapshot.docs.map(doc => doc.data());
-
-    return { prospects, production, closed };
+    console.log("Fetched Prospects Data:", prospects);
+    return prospects;
 }
 
-function processData(data) {
-    const allClients = [...data.prospects, ...data.production, ...data.closed];
-    const closedClients = allClients.filter(c => c.status === 'Fechado' || data.closed.some(dc => dc.empresa === c.empresa));
-
+function processData(prospects) {
+    const productionClients = prospects.filter(p => p.status && p.status.startsWith('Produção'));
+    const closedClients = prospects.filter(p => p.status === 'Concluído');
+    
     // Stats
-    const totalClients = new Set(allClients.map(c => c.empresa)).size;
+    const totalClients = new Set(prospects.map(c => c.empresa)).size;
     const totalRevenue = closedClients.reduce((sum, p) => sum + (p.ticketEstimado || 0), 0);
     const avgTicket = totalClients > 0 ? totalRevenue / totalClients : 0;
     
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    const newClientsThisMonth = allClients.filter(c => {
+    const newClientsThisMonth = prospects.filter(c => {
         if (c.createdAt && c.createdAt.toDate) {
             const createdAt = c.createdAt.toDate();
             return createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
@@ -70,10 +60,13 @@ function processData(data) {
     });
 
     const clientsBySector = {};
-    allClients.forEach(c => {
+    const productionAndClosedClients = [...productionClients, ...closedClients];
+    console.log("Combined Production and Closed Clients:", productionAndClosedClients);
+    productionAndClosedClients.forEach(c => {
         const sector = c.setor || 'Não especificado';
         clientsBySector[sector] = (clientsBySector[sector] || 0) + 1;
     });
+    console.log("Processed Clients by Sector:", clientsBySector);
 
     return {
         totalClients,
