@@ -76,7 +76,7 @@
                 </div>
 
                 <!-- Kanban Board -->
-                <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 flex-grow min-h-0">
+                <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 flex-grow min-h-0">
                     <!-- Columns will be injected here by JS -->
                 </div>
             </div>
@@ -223,7 +223,8 @@
             'Aprovação': 'aprovacao',
             'Produção // V2': 'producao_v2',
             'Finalização': 'finalizacao',
-            'Entrega': 'entrega'
+            'Entrega': 'entrega',
+            'Concluído': 'concluido'
         };
         const COLUMN_NAMES = Object.keys(COLUMNS);
 
@@ -430,7 +431,7 @@
             const productionStatuses = Object.keys(COLUMNS);
 
             filteredProspects = prospects.filter(p => {
-                const isInProduction = productionStatuses.includes(p.status);
+                const isInProduction = productionStatuses.includes(p.status) && p.status !== 'Concluído';
                 if (!isInProduction) return false;
 
                 const matchSearch = !search || p.empresa.toLowerCase().includes(search) || (p.setor && p.setor.toLowerCase().includes(search));
@@ -756,7 +757,7 @@
             try {
                 const [headerRes, sidebarRes] = await Promise.all([
                     fetch('header.html'),
-                    fetch('sidebar.html')
+                    fetch(`sidebar.html?v=${new Date().getTime()}`)
                 ]);
 
                 if (!headerRes.ok || !sidebarRes.ok) {

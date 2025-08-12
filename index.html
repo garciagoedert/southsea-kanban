@@ -776,7 +776,7 @@
             try {
                 const [headerRes, sidebarRes] = await Promise.all([
                     fetch('header.html'),
-                    fetch('sidebar.html')
+                    fetch(`sidebar.html?v=${new Date().getTime()}`)
                 ]);
 
                 if (!headerRes.ok || !sidebarRes.ok) {
