@@ -107,6 +107,19 @@ async function loadComponents(pageSpecificSetup) {
             }
         });
 
+        // Show/hide elements based on page and user role
+        const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+        const adminLink = document.getElementById('admin-link');
+        if (isAdmin && adminLink) {
+            adminLink.classList.remove('hidden');
+        }
+
+        const addProspectBtn = document.getElementById('addProspectBtnHeader');
+        if (addProspectBtn && (currentPage === 'perfil.html' || currentPage === 'admin.html')) {
+            addProspectBtn.classList.add('hidden');
+        }
+
+
         if (pageSpecificSetup && typeof pageSpecificSetup === 'function') {
             pageSpecificSetup();
         }
