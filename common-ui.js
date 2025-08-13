@@ -114,9 +114,10 @@ async function loadComponents(pageSpecificSetup) {
             adminLink.classList.remove('hidden');
         }
 
+        // Apenas mostra o botão de prospecção na página de prospecção
         const addProspectBtn = document.getElementById('addProspectBtnHeader');
-        if (addProspectBtn && (currentPage === 'perfil.html' || currentPage === 'admin.html')) {
-            addProspectBtn.classList.add('hidden');
+        if (addProspectBtn && currentPage === 'index.html') {
+            addProspectBtn.classList.remove('hidden');
         }
 
 

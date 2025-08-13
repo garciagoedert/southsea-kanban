@@ -694,7 +694,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadComponents(() => {
                 // This function is called after components are loaded
-                setupUIListeners({
+                const handlers = {
                     openFormModal,
                     exportData,
                     openImportModal,
@@ -703,7 +703,8 @@
                     closeImportModal,
                     handleImport,
                     applyFilters
-                });
+                };
+                setupUIListeners(handlers);
             });
         });
     </script>

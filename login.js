@@ -10,6 +10,7 @@ function handleLogin(e) {
 
     if (foundUser) {
         sessionStorage.setItem('isLoggedIn', 'true');
+        sessionStorage.setItem('currentUser', JSON.stringify(foundUser));
         sessionStorage.setItem('userName', foundUser.name);
         sessionStorage.setItem('isAdmin', foundUser.isAdmin);
         generalLog.add(foundUser.name, 'Login', 'User logged in successfully');
