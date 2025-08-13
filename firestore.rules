@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regra existente para prospects
+    match /artifacts/{appId}/public/data/prospects/{prospectId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Nova regra para tarefas
+    // Permite que qualquer usuário autenticado crie, leia, atualize e apague tarefas.
+    match /artifacts/{appId}/public/data/tasks/{taskId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
