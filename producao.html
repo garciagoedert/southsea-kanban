@@ -807,12 +807,80 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadComponents();
-            // Initial setup for elements that are not dynamically loaded
-            // (e.g., main filter buttons if they were outside the dynamic components)
+            loadComponents().then(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const cardIdToOpen = urlParams.get('cardId');
+                if (cardIdToOpen) {
+                    const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'prospects'), (snapshot) => {
+                        const prospect = prospects.find(p => p.id === cardIdToOpen);
+                        if (prospect) {
+                            openFormModal(prospect);
+                            unsubscribe(); // Stop listening once we've found and opened the card
+                        }
+                    });
+                }
+            });
         });
 
     </script>
     <script type="module" src="production.js"></script>
 </body>
 </html>
+
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+<environment_details>
+# VSCode Visible Files
+../../../../../index.html
+../../../../../index.html
+../../../../../login.js
+../../../../../login.js
+producao.html
+
+# VSCode Open Tabs
+production.js
+analysis.html
+analysis.js
+geral_log.js
+log.css
+log.js
+log.html
+admin.js
+perfil.js
+sidebar_new.html
+perfil.html
+admin.html
+tarefas.css
+header.html
+common-ui.js
+chat.css
+chat.html
+chat.js
+Especificacao_Modulo_Tarefas.md
+login.js
+auth.js
+login.html
+firestore.rules
+sidebar.html
+tarefas.html
+calendario.html
+calendario.js
+tarefas.js
+index.html
+producao.html
+closed-clients.html
+closed-clients.js
+README.md
+perfil.css
+
+# Current Time
+13/08/2025, 11:15:21 PM (America/Sao_Paulo, UTC-3:00)
+
+# Context Window Usage
+688.781 / 1.048,576K tokens used (66%)
+
+# Current Mode
+ACT MODE
+</environment_details>

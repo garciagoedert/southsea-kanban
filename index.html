@@ -71,6 +71,9 @@
                             <option value="2">Baixa (2)</option>
                             <option value="1">Mínima (1)</option>
                         </select>
+                        <select id="tagFilter" class="w-full sm:w-auto bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filter by tag">
+                            <option value="">Todas as Tags</option>
+                        </select>
                         <button id="resetFiltersBtn" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex-shrink-0">Limpar</button>
                     </div>
                 </div>
@@ -147,6 +150,12 @@
                     <div class="form-group md:col-span-2">
                         <label for="observacoes" class="block text-sm font-medium text-gray-300 mb-1">Observações</label>
                         <textarea id="observacoes" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                        <div id="tagsContainer" class="flex flex-wrap gap-2">
+                            <!-- As tags serão inseridas aqui pelo JS -->
+                        </div>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-700">
@@ -225,6 +234,7 @@
             'Proposta': 'proposta', 'Fechado': 'fechado'
         };
         const COLUMN_NAMES = Object.keys(COLUMNS);
+        const TAGS = ['Whatsapp', 'Ligação', 'Email', 'Follow-up', 'Urgente'];
 
         // --- UI ELEMENTS ---
         const kanbanBoard = document.getElementById('kanban-board');
@@ -309,14 +319,19 @@
 
             const sectorColor = getSectorColor(prospect.setor);
 
+            const tagsHTML = (prospect.tags || []).map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-900/50 text-sky-200">${tag}</span>`).join('');
+
             card.innerHTML = `
                 <div class="flex justify-between items-start">
                     <h4 class="font-bold mb-2 flex-grow pr-2">${prospect.empresa}</h4>
                     <button data-action="delete" data-id="${prospect.id}" class="text-gray-500 hover:text-red-500 text-xs"><i class="fas fa-trash"></i></button>
                 </div>
-                <div class="flex items-center gap-2 mb-3">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sectorColor.bg} ${sectorColor.text}">${prospect.setor}</span>
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">P${prospect.prioridade}</span>
+                </div>
+                <div class="flex items-center gap-1 mb-3 flex-wrap">
+                    ${tagsHTML}
                 </div>
                 <p class="text-sm text-green-400 font-semibold">R$ ${prospect.ticketEstimado?.toLocaleString('pt-BR') || 'N/A'}</p>
             `;
@@ -419,6 +434,7 @@
         function applyFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const priority = document.getElementById('priorityFilter').value;
+            const tag = document.getElementById('tagFilter').value;
             const prospectingStatuses = Object.keys(COLUMNS);
 
 
@@ -428,7 +444,8 @@
 
                 const matchSearch = !search || p.empresa.toLowerCase().includes(search) || (p.setor && p.setor.toLowerCase().includes(search));
                 const matchPriority = !priority || p.prioridade.toString() === priority;
-                return matchSearch && matchPriority;
+                const matchTag = !tag || (p.tags && p.tags.includes(tag));
+                return matchSearch && matchPriority && matchTag;
             });
             renderBoard();
         }
@@ -436,6 +453,7 @@
         // --- MODAL HANDLING ---
         function openFormModal(prospect = null) {
             prospectForm.reset();
+            populateTagsInModal(); // Garante que as tags estejam lá
             const modalTitle = document.getElementById('modalTitle');
             const prospectIdInput = document.getElementById('prospectId');
 
@@ -454,6 +472,13 @@
                 document.getElementById('redesSociais').value = prospect.redesSociais || '';
                 document.getElementById('siteAtual').value = prospect.siteAtual || '';
                 document.getElementById('observacoes').value = prospect.observacoes || '';
+                
+                // Marca as tags existentes
+                (prospect.tags || []).forEach(tag => {
+                    const checkbox = document.getElementById(`tag-${tag}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+
             } else {
                 modalTitle.textContent = 'Adicionar Novo Prospect';
                 prospectIdInput.value = '';
@@ -524,6 +549,11 @@
             }
 
             const prospectId = document.getElementById('prospectId').value;
+            const selectedTags = [];
+            document.querySelectorAll('#tagsContainer input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedTags.push(checkbox.value);
+            });
+
             const data = {
                 empresa: document.getElementById('empresa').value,
                 setor: document.getElementById('setor').value,
@@ -537,6 +567,7 @@
                 redesSociais: document.getElementById('redesSociais').value,
                 siteAtual: document.getElementById('siteAtual').value,
                 observacoes: document.getElementById('observacoes').value,
+                tags: selectedTags,
                 updatedAt: serverTimestamp()
             };
 
@@ -630,6 +661,40 @@
             }
         }
 
+        // --- TAGS UTILITY ---
+        function populateTags() {
+            const tagFilter = document.getElementById('tagFilter');
+            TAGS.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+            });
+        }
+
+        function populateTagsInModal() {
+            const tagsContainer = document.getElementById('tagsContainer');
+            tagsContainer.innerHTML = ''; // Limpa para evitar duplicação
+            TAGS.forEach(tag => {
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.className = 'flex items-center';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `tag-${tag}`;
+                checkbox.value = tag;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-gray-700';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `tag-${tag}`;
+                label.textContent = tag;
+                label.className = 'ml-2 block text-sm text-gray-300';
+
+                checkboxContainer.appendChild(checkbox);
+                checkboxContainer.appendChild(label);
+                tagsContainer.appendChild(checkboxContainer);
+            });
+        }
+
         // --- UTILITY ---
         function getPriorityColor(priority) {
             const colors = {
@@ -692,9 +757,10 @@
 
         // --- INITIALIZE APP ---
         document.addEventListener('DOMContentLoaded', () => {
+            populateTags();
             loadComponents(() => {
-                // This function is called after components are loaded
-                const handlers = {
+                // This callback runs after header/sidebar are loaded
+                setupUIListeners({
                     openFormModal,
                     exportData,
                     openImportModal,
@@ -703,11 +769,80 @@
                     closeImportModal,
                     handleImport,
                     applyFilters
-                };
-                setupUIListeners(handlers);
+                });
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const cardIdToOpen = urlParams.get('cardId');
+                if (cardIdToOpen) {
+                    const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'prospects'), (snapshot) => {
+                        const prospect = prospects.find(p => p.id === cardIdToOpen);
+                        if (prospect) {
+                            openFormModal(prospect);
+                            unsubscribe();
+                        }
+                    });
+                }
             });
         });
     </script>
     <script src="geral_log.js"></script>
 </body>
 </html>
+
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+<environment_details>
+# VSCode Visible Files
+../../../../../index.html
+../../../../../index.html
+../../../../../login.js
+../../../../../login.js
+producao.html
+
+# VSCode Open Tabs
+production.js
+analysis.html
+analysis.js
+geral_log.js
+log.css
+log.js
+log.html
+admin.js
+perfil.js
+sidebar_new.html
+perfil.html
+admin.html
+tarefas.css
+header.html
+common-ui.js
+chat.css
+chat.html
+chat.js
+Especificacao_Modulo_Tarefas.md
+login.js
+auth.js
+login.html
+firestore.rules
+sidebar.html
+tarefas.html
+calendario.html
+calendario.js
+tarefas.js
+index.html
+producao.html
+closed-clients.html
+closed-clients.js
+README.md
+perfil.css
+
+# Current Time
+13/08/2025, 11:17:28 PM (America/Sao_Paulo, UTC-3:00)
+
+# Context Window Usage
+722.778 / 1.048,576K tokens used (69%)
+
+# Current Mode
+ACT MODE
+</environment_details>
