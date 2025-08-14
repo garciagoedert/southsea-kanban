@@ -3,10 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Módulo de Tarefas - CRM</title>
+    <title>Calendário de Tarefas - CRM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="log.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FullCalendar CSS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <style>
+        #calendar-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #calendar {
+            flex-grow: 1;
+            min-height: 0; /* Important for flex-grow to work in a flex column */
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
     <div id="app-container" class="flex h-screen">
@@ -20,54 +33,16 @@
             <div id="header-container"></div>
 
             <!-- Page Content -->
-            <div class="flex-grow p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-semibold text-white">Gerenciamento de Tarefas</h1>
-                    <button id="create-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">Nova Tarefa</button>
+            <div id="calendar-container" class="flex-grow p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                    <h1 class="text-2xl font-semibold text-white">Calendário de Tarefas</h1>
                 </div>
-            <div class="flex items-center gap-4 mb-6">
-                <input type="text" id="search-input" placeholder="Buscar por título..." class="flex-grow p-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <div class="flex gap-4">
-                    <select id="filter-assignee" title="Filtrar por Responsável" class="p-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Todos os Responsáveis</option>
-                    </select>
-                    <select id="filter-status" title="Filtrar por Status" class="p-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Todos os Status</option>
-                        <option value="pending">Pendente</option>
-                        <option value="in_progress">Em Progresso</option>
-                        <option value="done">Concluída</option>
-                    </select>
-                    <select id="filter-priority" title="Filtrar por Prioridade" class="p-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Todas as Prioridades</option>
-                        <option value="low">Baixa</option>
-                        <option value="normal">Normal</option>
-                        <option value="high">Alta</option>
-                        <option value="urgent">Urgente</option>
-                    </select>
-                </div>
-            </div>
-            <div class="bg-gray-800 shadow-md rounded-lg overflow-hidden">
-                <table class="min-w-full leading-normal">
-                    <thead>
-                        <tr class="bg-gray-700 text-gray-300 uppercase text-sm">
-                            <th class="py-3 px-5 text-left">Título</th>
-                            <th class="py-3 px-5 text-left">Cliente/Vínculo</th>
-                            <th class="py-3 px-5 text-left">Responsável</th>
-                            <th class="py-3 px-5 text-left">Prazo</th>
-                            <th class="py-3 px-5 text-left">Prioridade</th>
-                            <th class="py-3 px-5 text-left">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tasks-tbody" class="text-gray-400">
-                        <!-- Linhas de tarefas serão inseridas aqui via JS -->
-                    </tbody>
-                </table>
-            </div>
+                <div id='calendar' class="bg-gray-800 p-4 rounded-lg"></div>
             </div>
         </main>
     </div>
 
-    <!-- Modal para Criar/Editar Tarefa -->
+    <!-- Modal para Criar/Editar Tarefa (reutilizado de tarefas.html) -->
     <div id="task-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 items-center justify-center p-4">
         <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center p-4 border-b border-gray-700">
@@ -129,10 +104,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        // Import a função que inicializa a página de tarefas
-        import { initializeAppWithFirebase } from './tarefas.js';
-
-        // Configuração do Firebase (mesma do index.html)
+        import { initializeAppWithFirebase } from './calendario.js';
         const firebaseConfig = {
             apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
             authDomain: "kanban-652ba.firebaseapp.com",
@@ -142,8 +114,6 @@
             appId: "1:476390177044:web:39e6597eb624006ee06a01",
             measurementId: "G-KRW331FL5F"
         };
-        
-        // Inicializa o Firebase e passa a configuração para o script de tarefas
         initializeAppWithFirebase(firebaseConfig);
     </script>
 </body>

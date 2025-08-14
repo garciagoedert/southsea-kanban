@@ -14,40 +14,35 @@ export function initializeAppWithFirebase(firebaseConfig) {
     document.addEventListener('DOMContentLoaded', () => {
         onAuthStateChanged(auth, (user) => {
             if (user && sessionStorage.getItem('isLoggedIn') === 'true') {
-                // Usuário autenticado, pode carregar a UI
                 loadComponents(() => {
-                    initializeTasksPage(tasksCollectionRef);
+                    initializeCalendarPage(tasksCollectionRef);
                     setupUIListeners();
                 });
             } else {
-                // Usuário não autenticado, redireciona para o login
                 window.location.href = 'login.html';
             }
         });
     });
 }
 
-function initializeTasksPage(tasksCollectionRef) {
+function initializeCalendarPage(tasksCollectionRef) {
     const systemUsers = getAllUsers();
-    let tasks = []; // O array será populado pelo Firebase
+    let tasks = [];
+    let calendar;
 
-    // Elementos do DOM
-    const createTaskBtn = document.getElementById('create-task-btn');
+    // Elementos do DOM para o modal (reutilizados)
     const modal = document.getElementById('task-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const cancelBtn = document.getElementById('cancel-btn');
     const deleteTaskBtn = document.getElementById('delete-task-btn');
     const taskForm = document.getElementById('task-form');
-    const tasksTbody = document.getElementById('tasks-tbody');
     const modalTitle = document.getElementById('modal-title');
-    
-    const filterAssignee = document.getElementById('filter-assignee');
     const taskAssigneeSelect = document.getElementById('task-assignee');
 
-    // Funções
+    // Funções do Modal
     const openModal = () => {
         modal.classList.remove('hidden');
-        modal.classList.add('flex'); // Use flex to center it
+        modal.classList.add('flex');
     };
 
     const closeModal = () => {
@@ -56,76 +51,32 @@ function initializeTasksPage(tasksCollectionRef) {
         taskForm.reset();
         document.getElementById('task-id').value = '';
         modalTitle.textContent = 'Nova Tarefa';
-        deleteTaskBtn.classList.add('hidden'); // Esconde o botão de apagar
+        deleteTaskBtn.classList.add('hidden');
     };
 
     const populateUsers = () => {
-        filterAssignee.innerHTML = '<option value="">Todos os Responsáveis</option>';
-        taskAssigneeSelect.innerHTML = ''; // Limpa para não duplicar
-
+        taskAssigneeSelect.innerHTML = '';
         systemUsers.forEach(user => {
             const option = document.createElement('option');
             option.value = user.email;
             option.textContent = user.name;
-            filterAssignee.appendChild(option.cloneNode(true));
             taskAssigneeSelect.appendChild(option);
         });
     };
-
-    const getPriorityClass = (priority) => {
-        switch (priority) {
-            case 'urgent': return 'text-red-600 font-bold';
-            case 'high': return 'text-yellow-600';
-            case 'normal': return 'text-blue-600';
-            case 'low': return 'text-green-600';
-            default: return 'text-gray-600';
-        }
-    };
-
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'pending': return '<span class="bg-yellow-200 text-yellow-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Pendente</span>';
-            case 'in_progress': return '<span class="bg-blue-200 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Em Progresso</span>';
-            case 'done': return '<span class="bg-green-200 text-green-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Concluída</span>';
-            default: return '';
-        }
-    };
-
+    
     const openModalForEdit = (task) => {
         document.getElementById('task-id').value = task.id;
         document.getElementById('task-title').value = task.title;
         document.getElementById('task-description').value = task.description || '';
         document.getElementById('task-assignee').value = task.assignee_email;
-        // Formata a data para o input datetime-local (YYYY-MM-DDTHH:mm)
         document.getElementById('task-due-date').value = task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '';
         document.getElementById('task-priority').value = task.priority;
-        document.getElementById('task-status').value = task.status || 'pending'; // Popula o status
+        document.getElementById('task-status').value = task.status || 'pending';
         document.getElementById('task-parent-entity').value = task.parent_entity;
         
         modalTitle.textContent = 'Editar Tarefa';
-        deleteTaskBtn.classList.remove('hidden'); // Mostra o botão de apagar
+        deleteTaskBtn.classList.remove('hidden');
         openModal();
-    };
-
-    const renderTasks = (tasksToRender) => {
-        tasksTbody.innerHTML = '';
-        tasksToRender.forEach(task => {
-            const tr = document.createElement('tr');
-            tr.className = 'border-b border-gray-700 hover:bg-gray-700/50 cursor-pointer';
-            const assignee = systemUsers.find(u => u.email === task.assignee_email);
-            const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'N/A';
-
-            tr.innerHTML = `
-                <td class="py-3 px-5 text-left">${task.title}</td>
-                <td class="py-3 px-5 text-left">${task.parent_entity || 'N/A'}</td>
-                <td class="py-3 px-5 text-left">${assignee ? assignee.name : 'N/A'}</td>
-                <td class="py-3 px-5 text-left">${dueDate}</td>
-                <td class="py-3 px-5 text-left ${getPriorityClass(task.priority)}">${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</td>
-                <td class="py-3 px-5 text-left">${getStatusBadge(task.status)}</td>
-            `;
-            tr.addEventListener('click', () => openModalForEdit(task));
-            tasksTbody.appendChild(tr);
-        });
     };
 
     const handleFormSubmit = async (event) => {
@@ -154,7 +105,7 @@ function initializeTasksPage(tasksCollectionRef) {
             closeModal();
         } catch (error) {
             console.error("Erro ao salvar tarefa:", error);
-            alert("Não foi possível salvar a tarefa. Verifique o console para mais detalhes.");
+            alert("Não foi possível salvar a tarefa.");
         }
     };
 
@@ -169,19 +120,43 @@ function initializeTasksPage(tasksCollectionRef) {
                 closeModal();
             } catch (error) {
                 console.error("Erro ao apagar tarefa:", error);
-                alert("Não foi possível apagar a tarefa. Verifique o console para mais detalhes.");
+                alert("Não foi possível apagar a tarefa.");
             }
         }
     };
 
-    // Event Listeners
-    createTaskBtn.addEventListener('click', () => {
-        taskForm.reset();
-        document.getElementById('task-id').value = '';
-        modalTitle.textContent = 'Nova Tarefa';
-        deleteTaskBtn.classList.add('hidden');
-        openModal();
+    // Inicialização do Calendário
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: [], // Inicia vazio, será populado pelo Firebase
+        eventClick: function(info) {
+            const taskId = info.event.id;
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                openModalForEdit(task);
+            }
+        },
+        locale: 'pt-br',
+        buttonText: {
+            today: 'Hoje',
+            month: 'Mês',
+            week: 'Semana',
+            day: 'Dia'
+        },
+        height: '100%',
+        windowResize: function(arg) {
+            calendar.updateSize();
+        }
     });
+    calendar.render();
+
+    // Listeners do Modal
     closeModalBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
     deleteTaskBtn.addEventListener('click', handleDeleteTask);
@@ -189,13 +164,19 @@ function initializeTasksPage(tasksCollectionRef) {
 
     // Inicialização
     populateUsers();
-    
-    // Listener do Firebase para atualizar as tarefas em tempo real
+
+    // Listener do Firebase
     onSnapshot(tasksCollectionRef, (snapshot) => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderTasks(tasks);
+        const calendarEvents = tasks.filter(task => task.due_date).map(task => ({
+            id: task.id,
+            title: task.title,
+            start: task.due_date,
+            allDay: false // Assumindo que due_date inclui a hora
+        }));
+        calendar.getEventSources().forEach(source => source.remove());
+        calendar.addEventSource(calendarEvents);
     }, (error) => {
         console.error("Erro ao buscar tarefas:", error);
-        tasksTbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Erro ao carregar as tarefas.</td></tr>`;
     });
 }
