@@ -9,7 +9,7 @@ function findUser(email, password) {
     return users.find(user => user.email === email && user.password === password);
 }
 
-function getAllUsers() {
+window.getAllUsers = function() {
     return users;
 }
 

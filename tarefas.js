@@ -29,7 +29,7 @@ export function initializeAppWithFirebase(firebaseConfig) {
 }
 
 function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
-    const systemUsers = getAllUsers();
+    const systemUsers = window.getAllUsers();
     let tasks = []; // O array será populado pelo Firebase
     let prospects = []; // Array para os cards do Kanban
 
@@ -40,10 +40,13 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     const cancelBtn = document.getElementById('cancel-btn');
     const deleteTaskBtn = document.getElementById('delete-task-btn');
     const taskForm = document.getElementById('task-form');
-    const tasksTbody = document.getElementById('tasks-tbody');
+    const tasksContainer = document.getElementById('tasks-container');
     const modalTitle = document.getElementById('modal-title');
     
+    const searchInput = document.getElementById('search-input');
     const filterAssignee = document.getElementById('filter-assignee');
+    const filterStatus = document.getElementById('filter-status');
+    const filterPriority = document.getElementById('filter-priority');
     const taskAssigneeSelect = document.getElementById('task-assignee');
     const taskLinkedCardSearch = document.getElementById('task-linked-card-search');
     const taskLinkedCardId = document.getElementById('task-linked-card-id');
@@ -109,20 +112,23 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     };
 
     const getPriorityClass = (priority) => {
+        // Returns a text color class based on the image
         switch (priority) {
-            case 'urgent': return 'text-red-600 font-bold';
-            case 'high': return 'text-yellow-600';
-            case 'normal': return 'text-blue-600';
-            case 'low': return 'text-green-600';
-            default: return 'text-gray-600';
+            case 'urgent': return 'text-red-400';
+            case 'high': return 'text-yellow-400';
+            case 'normal': return 'text-blue-400';
+            case 'low': return 'text-green-400';
+            default: return 'text-gray-400';
         }
     };
 
     const getStatusBadge = (status) => {
+        // Returns the badge HTML based on the image
+        const baseClasses = 'text-xs font-semibold px-3 py-1 rounded-full';
         switch (status) {
-            case 'pending': return '<span class="bg-yellow-200 text-yellow-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Pendente</span>';
-            case 'in_progress': return '<span class="bg-blue-200 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Em Progresso</span>';
-            case 'done': return '<span class="bg-green-200 text-green-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Concluída</span>';
+            case 'pending': return `<span class="bg-yellow-400 text-yellow-900 ${baseClasses}">Pendente</span>`;
+            case 'in_progress': return `<span class="bg-blue-400 text-blue-900 ${baseClasses}">Em Progresso</span>`;
+            case 'done': return `<span class="bg-green-400 text-green-900 ${baseClasses}">Concluída</span>`;
             default: return '';
         }
     };
@@ -147,25 +153,63 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     };
 
     const renderTasks = (tasksToRender) => {
-        tasksTbody.innerHTML = '';
+        tasksContainer.innerHTML = '';
+        if (tasksToRender.length === 0) {
+            tasksContainer.innerHTML = `<tr><td colspan="6" class="text-center py-4">Nenhuma tarefa encontrada.</td></tr>`;
+            return;
+        }
         tasksToRender.forEach(task => {
-            const tr = document.createElement('tr');
-            tr.className = 'border-b border-gray-700 hover:bg-gray-700/50 cursor-pointer';
-            const assignee = systemUsers.find(u => u.email === task.assignee_email);
-            const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'N/A';
-            const linkedCard = prospects.find(p => p.id === task.linked_card_id);
+            const row = document.createElement('tr');
+            row.className = 'bg-gray-800 border-b border-gray-700 hover:bg-gray-700/60 cursor-pointer';
+            row.addEventListener('click', () => openModalForEdit(task));
 
-            tr.innerHTML = `
-                <td class="py-3 px-5 text-left">${task.title}</td>
-                <td class="py-3 px-5 text-left">${linkedCard ? `<a data-card-id="${linkedCard.id}" class="text-blue-400 hover:underline cursor-pointer">${linkedCard.empresa}</a>` : (task.parent_entity || 'N/A')}</td>
-                <td class="py-3 px-5 text-left">${assignee ? assignee.name : 'N/A'}</td>
-                <td class="py-3 px-5 text-left">${dueDate}</td>
-                <td class="py-3 px-5 text-left ${getPriorityClass(task.priority)}">${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</td>
-                <td class="py-3 px-5 text-left">${getStatusBadge(task.status)}</td>
+            const assignee = systemUsers.find(u => u.email === task.assignee_email);
+            const linkedCard = prospects.find(p => p.id === task.linked_card_id);
+            const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
+            const priorityText = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+            
+            const clientLinkHTML = linkedCard 
+                ? `<a href="index.html?cardId=${linkedCard.id}" class="text-blue-400 hover:underline" onclick="event.stopPropagation()">${linkedCard.empresa}</a>`
+                : (task.parent_entity || 'N/A');
+
+            row.innerHTML = `
+                <td class="px-6 py-4 font-medium text-white">${task.title}</td>
+                <td class="px-6 py-4">${clientLinkHTML}</td>
+                <td class="px-6 py-4">${assignee?.name || 'N/A'}</td>
+                <td class="px-6 py-4">${dueDate}</td>
+                <td class="px-6 py-4 ${getPriorityClass(task.priority)}">${priorityText}</td>
+                <td class="px-6 py-4">${getStatusBadge(task.status)}</td>
             `;
-            tr.addEventListener('click', () => openModalForEdit(task));
-            tasksTbody.appendChild(tr);
+            
+            tasksContainer.appendChild(row);
         });
+    };
+
+    const applyFiltersAndRender = () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const assigneeFilter = filterAssignee.value;
+        const statusFilter = filterStatus.value;
+        const priorityFilter = filterPriority.value;
+
+        let filteredTasks = tasks;
+
+        if (searchTerm) {
+            filteredTasks = filteredTasks.filter(task => 
+                (task.title && task.title.toLowerCase().includes(searchTerm)) ||
+                (task.description && task.description.toLowerCase().includes(searchTerm))
+            );
+        }
+        if (assigneeFilter) {
+            filteredTasks = filteredTasks.filter(task => task.assignee_email === assigneeFilter);
+        }
+        if (statusFilter) {
+            filteredTasks = filteredTasks.filter(task => task.status === statusFilter);
+        }
+        if (priorityFilter) {
+            filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter);
+        }
+
+        renderTasks(filteredTasks);
     };
 
     const handleFormSubmit = async (event) => {
@@ -228,18 +272,14 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     deleteTaskBtn.addEventListener('click', handleDeleteTask);
     taskForm.addEventListener('submit', handleFormSubmit);
     
-    tasksTbody.addEventListener('click', (e) => {
-        if (e.target && e.target.matches('a[data-card-id]')) {
-            e.preventDefault();
-            const cardId = e.target.dataset.cardId;
-            const card = prospects.find(p => p.id === cardId);
-            if (card) {
-                const productionStatuses = ['criacao', 'aprovacao', 'producao_v2', 'finalizacao', 'entrega', 'concluido'];
-                const page = productionStatuses.includes(card.status.toLowerCase().replace(/ /g, '_')) ? 'producao.html' : 'index.html';
-                window.location.href = `${page}?cardId=${cardId}`;
-            }
-        }
-    });
+    searchInput.addEventListener('input', applyFiltersAndRender);
+    filterAssignee.addEventListener('change', applyFiltersAndRender);
+    filterStatus.addEventListener('change', applyFiltersAndRender);
+    filterPriority.addEventListener('change', applyFiltersAndRender);
+
+    // O event listener da linha agora é tratado dentro da função renderTasks
+    // para melhor controle e para evitar delegação complexa.
+    // Este bloco pode ser removido.
 
     taskLinkedCardSearch.addEventListener('keyup', () => {
         const searchTerm = taskLinkedCardSearch.value.toLowerCase();
@@ -258,9 +298,20 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     // Listener do Firebase para atualizar as tarefas em tempo real
     onSnapshot(tasksCollectionRef, (snapshot) => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderTasks(tasks);
+        // Ordenar tarefas: pendentes e em progresso primeiro, depois por data de criação
+        tasks.sort((a, b) => {
+            const statusOrder = { 'pending': 1, 'in_progress': 2, 'done': 3 };
+            if (statusOrder[a.status] !== statusOrder[b.status]) {
+                return statusOrder[a.status] - statusOrder[b.status];
+            }
+            // Se os status são os mesmos, ordenar por data de criação (mais recentes primeiro)
+            const dateA = a.createdAt?.toDate() || 0;
+            const dateB = b.createdAt?.toDate() || 0;
+            return dateB - dateA;
+        });
+        applyFiltersAndRender();
     }, (error) => {
         console.error("Erro ao buscar tarefas:", error);
-        tasksTbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Erro ao carregar as tarefas.</td></tr>`;
+        tasksContainer.innerHTML = `<p class="text-center text-red-500 p-4 col-span-full">Erro ao carregar as tarefas.</p>`;
     });
 }

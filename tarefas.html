@@ -46,20 +46,20 @@
                     </select>
                 </div>
             </div>
-            <div class="bg-gray-800 shadow-md rounded-lg overflow-hidden">
-                <table class="min-w-full leading-normal">
-                    <thead>
-                        <tr class="bg-gray-700 text-gray-300 uppercase text-sm">
-                            <th class="py-3 px-5 text-left">Título</th>
-                            <th class="py-3 px-5 text-left">Cliente/Vínculo</th>
-                            <th class="py-3 px-5 text-left">Responsável</th>
-                            <th class="py-3 px-5 text-left">Prazo</th>
-                            <th class="py-3 px-5 text-left">Prioridade</th>
-                            <th class="py-3 px-5 text-left">Status</th>
+            <div class="overflow-x-auto bg-gray-800 rounded-lg">
+                <table class="min-w-full text-sm text-left text-gray-400">
+                    <thead class="text-xs text-gray-300 uppercase bg-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Título</th>
+                            <th scope="col" class="px-6 py-3">Cliente/Vínculo</th>
+                            <th scope="col" class="px-6 py-3">Responsável</th>
+                            <th scope="col" class="px-6 py-3">Prazo</th>
+                            <th scope="col" class="px-6 py-3">Prioridade</th>
+                            <th scope="col" class="px-6 py-3">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="tasks-tbody" class="text-gray-400">
-                        <!-- Linhas de tarefas serão inseridas aqui via JS -->
+                    <tbody id="tasks-container">
+                        <!-- As linhas da tabela de tarefas serão inseridas aqui -->
                     </tbody>
                 </table>
             </div>
