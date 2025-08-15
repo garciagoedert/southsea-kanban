@@ -35,8 +35,11 @@
                         <option value="">Todos os Status</option>
                         <option value="pending">Pendente</option>
                         <option value="in_progress">Em Progresso</option>
-                        <option value="done">Concluída</option>
                     </select>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="show-done-tasks" class="h-4 w-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500">
+                        <label for="show-done-tasks" class="ml-2 text-sm font-medium text-gray-300">Mostrar Concluídas</label>
+                    </div>
                     <select id="filter-priority" title="Filtrar por Prioridade" class="p-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Todas as Prioridades</option>
                         <option value="low">Baixa</option>
@@ -136,7 +139,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         // Import a função que inicializa a página de tarefas
-        import { initializeAppWithFirebase } from './tarefas.js';
+        import { initializeAppWithFirebase } from './tarefas.js?v=2.1';
 
         // Configuração do Firebase (mesma do index.html)
         const firebaseConfig = {

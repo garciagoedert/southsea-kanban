@@ -32,6 +32,7 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     const systemUsers = window.getAllUsers();
     let tasks = []; // O array será populado pelo Firebase
     let prospects = []; // Array para os cards do Kanban
+    let showDone = false; // Estado para controlar a visibilidade de tarefas concluídas
 
     // Elementos do DOM
     const createTaskBtn = document.getElementById('create-task-btn');
@@ -47,6 +48,7 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     const filterAssignee = document.getElementById('filter-assignee');
     const filterStatus = document.getElementById('filter-status');
     const filterPriority = document.getElementById('filter-priority');
+    const showDoneTasksCheckbox = document.getElementById('show-done-tasks');
     const taskAssigneeSelect = document.getElementById('task-assignee');
     const taskLinkedCardSearch = document.getElementById('task-linked-card-search');
     const taskLinkedCardId = document.getElementById('task-linked-card-id');
@@ -190,24 +192,41 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
         const assigneeFilter = filterAssignee.value;
         const statusFilter = filterStatus.value;
         const priorityFilter = filterPriority.value;
+        
+        showDoneTasksCheckbox.checked = showDone; // Sincroniza o checkbox com o estado
 
-        let filteredTasks = tasks;
+        const filteredTasks = tasks.filter(task => {
+            // Filtro 1: Checkbox de concluídas
+            if (!showDone && task.status === 'done') {
+                return false;
+            }
 
-        if (searchTerm) {
-            filteredTasks = filteredTasks.filter(task => 
-                (task.title && task.title.toLowerCase().includes(searchTerm)) ||
-                (task.description && task.description.toLowerCase().includes(searchTerm))
-            );
-        }
-        if (assigneeFilter) {
-            filteredTasks = filteredTasks.filter(task => task.assignee_email === assigneeFilter);
-        }
-        if (statusFilter) {
-            filteredTasks = filteredTasks.filter(task => task.status === statusFilter);
-        }
-        if (priorityFilter) {
-            filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter);
-        }
+            // Filtro 2: Status (Pendente, Em Progresso)
+            if (statusFilter && task.status !== statusFilter) {
+                return false;
+            }
+
+            // Filtro 3: Prioridade
+            if (priorityFilter && task.priority !== priorityFilter) {
+                return false;
+            }
+
+            // Filtro 4: Responsável
+            if (assigneeFilter && task.assignee_email !== assigneeFilter) {
+                return false;
+            }
+
+            // Filtro 5: Busca por texto
+            if (searchTerm) {
+                const titleMatch = task.title && task.title.toLowerCase().includes(searchTerm);
+                const descriptionMatch = task.description && task.description.toLowerCase().includes(searchTerm);
+                if (!titleMatch && !descriptionMatch) {
+                    return false;
+                }
+            }
+
+            return true; // Se passou por todos os filtros, inclui a tarefa
+        });
 
         renderTasks(filteredTasks);
     };
@@ -276,6 +295,11 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     filterAssignee.addEventListener('change', applyFiltersAndRender);
     filterStatus.addEventListener('change', applyFiltersAndRender);
     filterPriority.addEventListener('change', applyFiltersAndRender);
+    
+    showDoneTasksCheckbox.addEventListener('change', () => {
+        showDone = showDoneTasksCheckbox.checked;
+        applyFiltersAndRender();
+    });
 
     // O event listener da linha agora é tratado dentro da função renderTasks
     // para melhor controle e para evitar delegação complexa.
