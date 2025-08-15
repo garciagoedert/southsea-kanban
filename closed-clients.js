@@ -116,9 +116,13 @@ function createClientCard(client) {
     card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
             <h4 class="font-bold text-lg flex-grow pr-2">${client.empresa}</h4>
-            <div class="flex items-center gap-3 flex-shrink-0">
-                <button data-action="edit" data-id="${client.id}" class="text-gray-500 hover:text-blue-400 text-xs"><i class="fas fa-pencil-alt"></i></button>
-                <button data-action="delete" data-id="${client.id}" class="text-gray-500 hover:text-red-500 text-xs"><i class="fas fa-trash"></i></button>
+            <div class="relative">
+                <button data-action="toggle-menu" class="text-gray-500 hover:text-white text-xs"><i class="fas fa-ellipsis-v"></i></button>
+                <div data-menu class="absolute right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg z-10 hidden">
+                    <a href="#" data-action="edit" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600">Editar</a>
+                    <a href="#" data-action="archive" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600">Arquivar</a>
+                    <a href="#" data-action="delete" class="block px-4 py-2 text-sm text-red-400 hover:bg-gray-600">Excluir</a>
+                </div>
             </div>
         </div>
         <div class="flex items-center gap-2 mb-3">
@@ -130,23 +134,36 @@ function createClientCard(client) {
         <p class="text-xs text-gray-400 mt-auto">Concluído em: ${client.updatedAt ? new Date(client.updatedAt.seconds * 1000).toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
     `;
 
-    card.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const clientId = e.currentTarget.dataset.id;
-        const clientToDelete = allClosedClients.find(c => c.id === clientId);
-        if (clientToDelete) {
-            showConfirmModal(`Deseja realmente excluir "${clientToDelete.empresa}"?`, () => {
-                deleteClient(clientId);
-            });
-        }
-    });
+    card.addEventListener('click', (e) => {
+        const actionTarget = e.target.closest('[data-action]');
+        if (!actionTarget) return;
 
-    card.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
         e.stopPropagation();
-        const clientId = e.currentTarget.dataset.id;
-        const clientToEdit = allClosedClients.find(c => c.id === clientId);
-        if (clientToEdit) {
-            openEditModal(clientToEdit);
+        const action = actionTarget.dataset.action;
+        const clientId = client.id;
+
+        if (action === 'toggle-menu') {
+            const menu = card.querySelector('[data-menu]');
+            menu.classList.toggle('hidden');
+        } else if (action === 'delete') {
+            const clientToDelete = allClosedClients.find(c => c.id === clientId);
+            if (clientToDelete) {
+                showConfirmModal(`Deseja realmente excluir "${clientToDelete.empresa}"?`, () => {
+                    deleteClient(clientId);
+                });
+            }
+        } else if (action === 'edit') {
+            const clientToEdit = allClosedClients.find(c => c.id === clientId);
+            if (clientToEdit) {
+                openEditModal(clientToEdit);
+            }
+        } else if (action === 'archive') {
+            const clientToArchive = allClosedClients.find(c => c.id === clientId);
+            if (clientToArchive) {
+                showConfirmModal(`Deseja arquivar "${clientToArchive.empresa}"?`, () => {
+                    archiveClient(clientId);
+                });
+            }
         }
     });
     
@@ -213,6 +230,19 @@ async function deleteClient(clientId) {
     } catch (error) {
         console.error("Error deleting client:", error);
         alert("Erro ao excluir o cliente. Tente novamente.");
+    }
+}
+
+async function archiveClient(clientId) {
+    try {
+        const clientRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', clientId);
+        await updateDoc(clientRef, {
+            pagina: 'Arquivo',
+            updatedAt: Timestamp.now()
+        });
+    } catch (error) {
+        console.error("Error archiving client:", error);
+        alert("Erro ao arquivar o cliente. Tente novamente.");
     }
 }
 

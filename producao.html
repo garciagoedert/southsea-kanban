@@ -338,7 +338,13 @@
             card.innerHTML = `
                 <div class="flex justify-between items-start">
                     <h4 class="font-bold mb-2 flex-grow pr-2">${prospect.empresa}</h4>
-                    <button data-action="delete" data-id="${prospect.id}" class="text-gray-500 hover:text-red-500 text-xs"><i class="fas fa-trash"></i></button>
+                    <div class="relative">
+                        <button data-action="toggle-menu" class="text-gray-500 hover:text-white text-xs"><i class="fas fa-ellipsis-v"></i></button>
+                        <div data-menu class="absolute right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg z-10 hidden">
+                            <a href="#" data-action="archive" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600">Arquivar</a>
+                            <a href="#" data-action="delete" class="block px-4 py-2 text-sm text-red-400 hover:bg-gray-600">Excluir</a>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sectorColor.bg} ${sectorColor.text}">${prospect.setor}</span>
@@ -348,15 +354,29 @@
             `;
             
             card.addEventListener('click', (e) => {
-                if(e.target.closest('[data-action="delete"]')) {
-                    e.stopPropagation();
-                    const prospectId = e.target.closest('[data-action="delete"]').dataset.id;
+                const actionTarget = e.target.closest('[data-action]');
+                if (!actionTarget) {
+                    openFormModal(prospect);
+                    return;
+                }
+
+                e.stopPropagation();
+                const action = actionTarget.dataset.action;
+                const prospectId = prospect.id;
+
+                if (action === 'toggle-menu') {
+                    const menu = card.querySelector('[data-menu]');
+                    menu.classList.toggle('hidden');
+                } else if (action === 'delete') {
                     const prospectToDelete = prospects.find(p => p.id === prospectId);
                     showConfirmModal(`Deseja realmente excluir "${prospectToDelete.empresa}"?`, () => {
                         deleteProspect(prospectId);
                     });
-                } else {
-                    openFormModal(prospect);
+                } else if (action === 'archive') {
+                    const prospectToArchive = prospects.find(p => p.id === prospectId);
+                    showConfirmModal(`Deseja arquivar "${prospectToArchive.empresa}"?`, () => {
+                        archiveProspect(prospectId);
+                    });
                 }
             });
 
@@ -568,6 +588,23 @@
                 await deleteDoc(prospectRef);
             } catch (error) {
                 console.error("Error deleting prospect:", error);
+            }
+        }
+
+        async function archiveProspect(prospectId) {
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
+            const prospect = prospects.find(p => p.id === prospectId);
+            try {
+                const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
+                await updateDoc(prospectRef, {
+                    pagina: 'Arquivo',
+                    updatedAt: serverTimestamp()
+                });
+                if(prospect) {
+                    generalLog.add(user, 'Archive Card', `Card "${prospect.empresa}" archived`);
+                }
+            } catch (error) {
+                console.error("Error archiving prospect:", error);
             }
         }
 
