@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>South Sea - Produção</title>
+    <title>South Sea - Kanban</title>
     <!-- Favicon -->
     <link rel="icon" href="https://www.southsea.com.br/newimag/Ellipse%209.svg">
     
@@ -71,12 +71,15 @@
                             <option value="2">Baixa (2)</option>
                             <option value="1">Mínima (1)</option>
                         </select>
+                        <select id="tagFilter" class="w-full sm:w-auto bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filter by tag">
+                            <option value="">Todas as Tags</option>
+                        </select>
                         <button id="resetFiltersBtn" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex-shrink-0">Limpar</button>
                     </div>
                 </div>
 
                 <!-- Kanban Board -->
-                <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 flex-grow min-h-0">
+                <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 flex-grow min-h-0">
                     <!-- Columns will be injected here by JS -->
                 </div>
             </div>
@@ -105,11 +108,11 @@
                         <label for="prioridade" class="block text-sm font-medium text-gray-300 mb-1">Prioridade *</label>
                         <select id="prioridade" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Selecione</option>
-                            <option value="5">Máxima (5)</option>
-                            <option value="4">Alta (4)</option>
-                            <option value="3">Média (3)</option>
-                            <option value="2">Baixa (2)</option>
-                            <option value="1">Mínima (1)</option>
+                            <option value="5">5 - Máxima 🚀</option>
+                            <option value="4">4 - Alta 🔥</option>
+                            <option value="3">3 - Média ⭐</option>
+                            <option value="2">2 - Baixa ❄️</option>
+                            <option value="1">1 - Mínima 💤</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -155,6 +158,12 @@
                             <option value="WhatsApp">WhatsApp</option>
                             <option value="Produção">Produção</option>
                         </select>
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                        <div id="tagsContainer" class="flex flex-wrap gap-2">
+                            <!-- As tags serão inseridas aqui pelo JS -->
+                        </div>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-700">
@@ -202,6 +211,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { duplicateCardToProduction } from './production.js';
+        import { setupUIListeners, loadComponents } from './common-ui.js';
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -227,14 +238,11 @@
         let prospectsListener = null;
 
         const COLUMNS = {
-            'Produção // V1': 'criacao',
-            'Aprovação': 'aprovacao',
-            'Produção // V2': 'producao_v2',
-            'Finalização': 'finalizacao',
-            'Entrega': 'entrega',
-            'Concluído': 'concluido'
+            'Pendente': 'pendente', 'Contactado': 'contactado', 'Reunião': 'reuniao',
+            'Proposta': 'proposta', 'Fechado': 'fechado'
         };
         const COLUMN_NAMES = Object.keys(COLUMNS);
+        const TAGS = ['Whatsapp', 'Ligação', 'Email', 'Follow-up', 'Urgente'];
 
         // --- UI ELEMENTS ---
         const kanbanBoard = document.getElementById('kanban-board');
@@ -242,7 +250,6 @@
         const formModal = document.getElementById('formModal');
         const prospectForm = document.getElementById('prospectForm');
         const confirmModal = document.getElementById('confirmModal');
-        const loginPage = document.getElementById('login-page');
         const kanbanContainer = document.getElementById('kanban-container');
         const importModal = document.getElementById('importModal');
         
@@ -265,28 +272,13 @@
             }
         });
 
-        function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorEl = document.getElementById('login-error');
-
-            if (email === 'marketing@southsea.com.br' && password === 'Southsea@!') {
-                sessionStorage.setItem('isLoggedIn', 'true');
-                errorEl.classList.add('hidden');
-                showKanban();
-            } else {
-                errorEl.classList.remove('hidden');
-            }
-        }
-
         // --- DATA HANDLING (FIRESTORE) ---
         function setupProspectsListener() {
             if (prospectsListener) prospectsListener();
 
             const prospectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
             prospectsListener = onSnapshot(prospectsCollection, (snapshot) => {
-                prospects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(p => p.pagina === 'Produção');
+                prospects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(p => p.pagina === 'WhatsApp');
                 applyFilters();
             }, (error) => {
                 console.error("Error fetching prospects:", error);
@@ -335,14 +327,19 @@
 
             const sectorColor = getSectorColor(prospect.setor);
 
+            const tagsHTML = (prospect.tags || []).map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-900/50 text-sky-200">${tag}</span>`).join('');
+
             card.innerHTML = `
                 <div class="flex justify-between items-start">
                     <h4 class="font-bold mb-2 flex-grow pr-2">${prospect.empresa}</h4>
                     <button data-action="delete" data-id="${prospect.id}" class="text-gray-500 hover:text-red-500 text-xs"><i class="fas fa-trash"></i></button>
                 </div>
-                <div class="flex items-center gap-2 mb-3">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sectorColor.bg} ${sectorColor.text}">${prospect.setor}</span>
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">P${prospect.prioridade}</span>
+                </div>
+                <div class="flex items-center gap-1 mb-3 flex-wrap">
+                    ${tagsHTML}
                 </div>
                 <p class="text-sm text-green-400 font-semibold">R$ ${prospect.ticketEstimado?.toLocaleString('pt-BR') || 'N/A'}</p>
             `;
@@ -364,16 +361,16 @@
         }
 
         function updateStats() {
-            const totalInProduction = filteredProspects.length;
-            const pendingApproval = filteredProspects.filter(p => p.status === 'Aprovação').length;
-            const inFinalization = filteredProspects.filter(p => p.status === 'Finalização').length;
-            const delivered = filteredProspects.filter(p => p.status === 'Entrega').length;
+            const total = filteredProspects.length;
+            const highPriority = filteredProspects.filter(p => p.prioridade >= 4).length;
+            const totalPotential = filteredProspects.reduce((sum, p) => sum + (p.ticketEstimado || 0), 0);
+            const avgTicket = total > 0 ? totalPotential / total : 0;
 
             statsContainer.innerHTML = `
-                ${createStatCard('Total em Produção', totalInProduction, 'fa-industry', 'text-gray-300')}
-                ${createStatCard('Aguardando Aprovação', pendingApproval, 'fa-clock', 'text-yellow-400')}
-                ${createStatCard('Em Finalização', inFinalization, 'fa-cogs', 'text-blue-500')}
-                ${createStatCard('Entregues', delivered, 'fa-check-circle', 'text-green-500')}
+                ${createStatCard('Total de Prospects', total, 'fa-users', 'text-gray-300')}
+                ${createStatCard('Alta Prioridade', highPriority, 'fa-star', 'text-yellow-400')}
+                ${createStatCard('Potencial Total', `R$ ${totalPotential.toLocaleString('pt-BR')}`, 'fa-dollar-sign', 'text-green-500')}
+                ${createStatCard('Ticket Médio', `R$ ${Math.round(avgTicket).toLocaleString('pt-BR')}`, 'fa-chart-pie', 'text-blue-500')}
             `;
         }
 
@@ -421,12 +418,21 @@
         }
         
         async function updateProspectStatus(prospectId, newStatus) {
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
+            const prospect = prospects.find(p => p.id === prospectId);
+            const oldStatus = prospect ? prospect.status : 'N/A';
             try {
                 const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
-                await updateDoc(prospectRef, { 
+                await updateDoc(prospectRef, {
                     status: newStatus,
                     updatedAt: serverTimestamp()
                 });
+                generalLog.add(user, 'Move Card', `Card "${prospect.empresa}" moved from ${oldStatus} to ${newStatus}`);
+                if (newStatus === 'Fechado') {
+                    if (prospect) {
+                        await duplicateCardToProduction(prospect);
+                    }
+                }
             } catch (error) {
                 console.error("Error updating status:", error);
             }
@@ -436,15 +442,18 @@
         function applyFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const priority = document.getElementById('priorityFilter').value;
-            const productionStatuses = Object.keys(COLUMNS);
+            const tag = document.getElementById('tagFilter').value;
+            const prospectingStatuses = Object.keys(COLUMNS);
+
 
             filteredProspects = prospects.filter(p => {
-                const isInProduction = productionStatuses.includes(p.status) && p.status !== 'Concluído';
-                if (!isInProduction) return false;
+                const isProspecting = prospectingStatuses.includes(p.status);
+                if (!isProspecting) return false;
 
                 const matchSearch = !search || p.empresa.toLowerCase().includes(search) || (p.setor && p.setor.toLowerCase().includes(search));
                 const matchPriority = !priority || p.prioridade.toString() === priority;
-                return matchSearch && matchPriority;
+                const matchTag = !tag || (p.tags && p.tags.includes(tag));
+                return matchSearch && matchPriority && matchTag;
             });
             renderBoard();
         }
@@ -452,6 +461,7 @@
         // --- MODAL HANDLING ---
         function openFormModal(prospect = null) {
             prospectForm.reset();
+            populateTagsInModal(); // Garante que as tags estejam lá
             const modalTitle = document.getElementById('modalTitle');
             const prospectIdInput = document.getElementById('prospectId');
 
@@ -470,7 +480,14 @@
                 document.getElementById('redesSociais').value = prospect.redesSociais || '';
                 document.getElementById('siteAtual').value = prospect.siteAtual || '';
                 document.getElementById('observacoes').value = prospect.observacoes || '';
-                document.getElementById('pagina').value = prospect.pagina || 'Produção';
+                document.getElementById('pagina').value = prospect.pagina || 'WhatsApp';
+                
+                // Marca as tags existentes
+                (prospect.tags || []).forEach(tag => {
+                    const checkbox = document.getElementById(`tag-${tag}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+
             } else {
                 modalTitle.textContent = 'Adicionar Novo Prospect';
                 prospectIdInput.value = '';
@@ -525,8 +542,27 @@
         // --- CRUD OPERATIONS ---
         async function handleFormSubmit(e) {
             e.preventDefault();
-            
+
+            const requiredFields = [
+                { id: 'empresa', name: 'Empresa' },
+                { id: 'setor', name: 'Setor' },
+                { id: 'prioridade', name: 'Prioridade' }
+            ];
+            for (const fieldInfo of requiredFields) {
+                const field = document.getElementById(fieldInfo.id);
+                if (!field.value) {
+                    alert(`Por favor, preencha o campo obrigatório: ${fieldInfo.name}`);
+                    field.focus();
+                    return;
+                }
+            }
+
             const prospectId = document.getElementById('prospectId').value;
+            const selectedTags = [];
+            document.querySelectorAll('#tagsContainer input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedTags.push(checkbox.value);
+            });
+
             const data = {
                 empresa: document.getElementById('empresa').value,
                 setor: document.getElementById('setor').value,
@@ -541,31 +577,40 @@
                 siteAtual: document.getElementById('siteAtual').value,
                 observacoes: document.getElementById('observacoes').value,
                 pagina: document.getElementById('pagina').value,
+                tags: selectedTags,
                 updatedAt: serverTimestamp()
             };
 
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
             try {
                 const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
                 if (prospectId) { // Update
                     const prospectRef = doc(collectionPath, prospectId);
                     await updateDoc(prospectRef, data);
+                    generalLog.add(user, 'Update Card', `Card "${data.empresa}" updated`);
                 } else { // Create
-                    data.status = 'Produção // V1';
-                    data.pagina = 'Produção';
+                    data.status = 'Pendente';
+                    data.pagina = 'WhatsApp';
                     data.createdAt = serverTimestamp();
                     await addDoc(collectionPath, data);
+                    generalLog.add(user, 'Create Card', `New card "${data.empresa}" created`);
                 }
                 closeFormModal();
             } catch (error) {
                 console.error("Error saving prospect:", error);
-                alert("Erro ao salvar. Tente novamente.");
+                alert(`Erro ao salvar: ${error.message}`);
             }
         }
         
         async function deleteProspect(prospectId) {
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
+            const prospect = prospects.find(p => p.id === prospectId);
             try {
                 const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospectId);
                 await deleteDoc(prospectRef);
+                if(prospect) {
+                    generalLog.add(user, 'Delete Card', `Card "${prospect.empresa}" deleted`);
+                }
             } catch (error) {
                 console.error("Error deleting prospect:", error);
             }
@@ -615,14 +660,50 @@
                 importedCount++;
             });
 
+            const user = auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous';
             try {
                 await batch.commit();
+                generalLog.add(user, 'Import Leads', `${importedCount} leads imported successfully`);
                 alert(`${importedCount} leads importados com sucesso!`);
                 closeImportModal();
             } catch (error) {
                 console.error("Error importing leads:", error);
                 alert("Ocorreu um erro ao importar os leads. Verifique o console para mais detalhes.");
             }
+        }
+
+        // --- TAGS UTILITY ---
+        function populateTags() {
+            const tagFilter = document.getElementById('tagFilter');
+            TAGS.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+            });
+        }
+
+        function populateTagsInModal() {
+            const tagsContainer = document.getElementById('tagsContainer');
+            tagsContainer.innerHTML = ''; // Limpa para evitar duplicação
+            TAGS.forEach(tag => {
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.className = 'flex items-center';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `tag-${tag}`;
+                checkbox.value = tag;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-gray-700';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `tag-${tag}`;
+                label.textContent = tag;
+                label.className = 'ml-2 block text-sm text-gray-300';
+
+                checkboxContainer.appendChild(checkbox);
+                checkboxContainer.appendChild(label);
+                tagsContainer.appendChild(checkboxContainer);
+            });
         }
 
         // --- UTILITY ---
@@ -671,7 +752,7 @@
             prospects.forEach(p => {
                 const row = [
                     p.id, `"${p.empresa}"`, p.setor, p.prioridade, p.status, p.ticketEstimado,
-                    `"${p.telefone}"`, p.email, p.cpf, p.cnpj, `"${p.endereco}"`, `"${p.redesSociais}"`, p.siteAtual, `"${(p.observacoes || '').replace(/"/g, '&#39;&#39;')}"`
+                    `"${p.telefone}"`, p.email, p.cpf, p.cnpj, `"${p.endereco}"`, `"${p.redesSociais}"`, p.siteAtual, `"${(p.observacoes || '').replace(/"/g, '""')}"`
                 ].join(",");
                 csvContent += row + "\n";
             });
@@ -685,140 +766,22 @@
             document.body.removeChild(link);
         }
 
-        // --- UI LISTENERS ---
-        function setupUIListeners() {
-            // Sidebar toggle
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            const menuToggle = document.getElementById('menu-toggle');
-            const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
-            const backdrop = document.getElementById('sidebar-backdrop');
-
-            if (sidebar && menuToggle && sidebarCloseBtn && backdrop) {
-                const toggleSidebar = () => {
-                    const isHidden = sidebar.classList.contains('-translate-x-full');
-                    if (isHidden) {
-                        sidebar.classList.remove('-translate-x-full');
-                        backdrop.classList.remove('hidden');
-                        if (window.innerWidth >= 768) { 
-                             mainContent.classList.add('md:ml-64');
-                        }
-                    } else {
-                        sidebar.classList.add('-translate-x-full');
-                        backdrop.classList.add('hidden');
-                        if (window.innerWidth >= 768) {
-                            mainContent.classList.remove('md:ml-64');
-                        }
-                    }
-                };
-                menuToggle.addEventListener('click', toggleSidebar);
-                sidebarCloseBtn.addEventListener('click', toggleSidebar);
-                backdrop.addEventListener('click', toggleSidebar);
-            }
-
-            // Modal Buttons
-            document.getElementById('addProspectBtnHeader')?.addEventListener('click', () => openFormModal());
-            document.getElementById('exportBtnSidebar')?.addEventListener('click', exportData);
-            document.getElementById('importBtnSidebar')?.addEventListener('click', openImportModal);
-            
-            // Form and Modal controls
-            document.getElementById('closeFormModalBtn').addEventListener('click', closeFormModal);
-            document.getElementById('cancelFormBtn').addEventListener('click', closeFormModal);
-            prospectForm.addEventListener('submit', handleFormSubmit);
-            document.getElementById('closeImportModalBtn').addEventListener('click', closeImportModal);
-            document.getElementById('cancelImportBtn').addEventListener('click', closeImportModal);
-            document.getElementById('processImportBtn').addEventListener('click', handleImport);
-
-            // Filters
-            document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-            document.getElementById('priorityFilter').addEventListener('change', applyFilters);
-            document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('priorityFilter').value = '';
-                applyFilters();
-            });
-        }
-        
-        async function createProductionCard() {
-            const newCard = {
-                empresa: `Nova Produção ${new Date().toLocaleTimeString()}`,
-                setor: 'Produção',
-                prioridade: 3, // Média
-                ticketEstimado: 0,
-                status: 'Produção // V1',
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            };
-
-            try {
-                const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
-                await addDoc(collectionPath, newCard);
-            } catch (error) {
-                console.error("Error creating new production card:", error);
-                alert("Erro ao criar novo card de produção.");
-            }
-        }
-        
         // --- INITIALIZE APP ---
-        async function loadComponents() {
-            const headerContainer = document.getElementById('header-container');
-            const sidebarContainer = document.getElementById('sidebar-container');
-            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
-            try {
-                const [headerRes, sidebarRes] = await Promise.all([
-                    fetch('header.html'),
-                    fetch(`sidebar.html?v=${new Date().getTime()}`)
-                ]);
-
-                if (!headerRes.ok || !sidebarRes.ok) {
-                    throw new Error('Failed to fetch components');
-                }
-
-                headerContainer.innerHTML = await headerRes.text();
-                sidebarContainer.innerHTML = await sidebarRes.text();
-
-                // Set active link in sidebar
-                const sidebarLinks = sidebarContainer.querySelectorAll('nav a');
-                sidebarLinks.forEach(link => {
-                    const linkPage = link.getAttribute('href').split('/').pop();
-                    if (linkPage === currentPage) {
-                        link.classList.add('bg-blue-500', 'text-white');
-                        link.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                        
-                        if (linkPage === 'index.html') {
-                            const prospectActions = document.getElementById('prospect-actions');
-                            if(prospectActions) {
-                                prospectActions.classList.remove('hidden');
-                                prospectActions.classList.add('flex');
-                            }
-                        }
-                    }
-                });
-                
-                // Re-initialize UI listeners that depend on the loaded components
-                setupUIListeners();
-
-                const addProductionBtn = document.getElementById('addProspectBtnHeader');
-                if (addProductionBtn) {
-                    addProductionBtn.innerHTML = '<i class="fas fa-plus"></i> Nova produção';
-                    
-                    // Clone and replace the button to remove all old event listeners
-                    const newBtn = addProductionBtn.cloneNode(true);
-                    addProductionBtn.parentNode.replaceChild(newBtn, addProductionBtn);
-                    
-                    newBtn.addEventListener('click', createProductionCard);
-                }
-
-            } catch (error) {
-                console.error('Error loading components:', error);
-                headerContainer.innerHTML = '<p class="text-red-500 p-4">Error loading header.</p>';
-                sidebarContainer.innerHTML = '<p class="text-red-500 p-4">Error loading sidebar.</p>';
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            loadComponents().then(() => {
+            populateTags();
+            loadComponents(() => {
+                // This callback runs after header/sidebar are loaded
+                setupUIListeners({
+                    openFormModal,
+                    exportData,
+                    openImportModal,
+                    closeFormModal,
+                    handleFormSubmit,
+                    closeImportModal,
+                    handleImport,
+                    applyFilters
+                });
+
                 const urlParams = new URLSearchParams(window.location.search);
                 const cardIdToOpen = urlParams.get('cardId');
                 if (cardIdToOpen) {
@@ -826,72 +789,13 @@
                         const prospect = prospects.find(p => p.id === cardIdToOpen);
                         if (prospect) {
                             openFormModal(prospect);
-                            unsubscribe(); // Stop listening once we've found and opened the card
+                            unsubscribe();
                         }
                     });
                 }
             });
         });
-
     </script>
-    <script type="module" src="production.js"></script>
+    <script src="geral_log.js"></script>
 </body>
 </html>
-
-</final_file_content>
-
-IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
-
-<environment_details>
-# VSCode Visible Files
-../../../../../index.html
-../../../../../index.html
-../../../../../login.js
-../../../../../login.js
-producao.html
-
-# VSCode Open Tabs
-production.js
-analysis.html
-analysis.js
-geral_log.js
-log.css
-log.js
-log.html
-admin.js
-perfil.js
-sidebar_new.html
-perfil.html
-admin.html
-tarefas.css
-header.html
-common-ui.js
-chat.css
-chat.html
-chat.js
-Especificacao_Modulo_Tarefas.md
-login.js
-auth.js
-login.html
-firestore.rules
-sidebar.html
-tarefas.html
-calendario.html
-calendario.js
-tarefas.js
-index.html
-producao.html
-closed-clients.html
-closed-clients.js
-README.md
-perfil.css
-
-# Current Time
-13/08/2025, 11:15:21 PM (America/Sao_Paulo, UTC-3:00)
-
-# Context Window Usage
-688.781 / 1.048,576K tokens used (66%)
-
-# Current Mode
-ACT MODE
-</environment_details>

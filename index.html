@@ -151,6 +151,14 @@
                         <label for="observacoes" class="block text-sm font-medium text-gray-300 mb-1">Observações</label>
                         <textarea id="observacoes" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="pagina" class="block text-sm font-medium text-gray-300 mb-1">Página</label>
+                        <select id="pagina" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Prospecção">Prospecção</option>
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Produção">Produção</option>
+                        </select>
+                    </div>
                     <div class="form-group md:col-span-2">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
                         <div id="tagsContainer" class="flex flex-wrap gap-2">
@@ -270,7 +278,7 @@
 
             const prospectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
             prospectsListener = onSnapshot(prospectsCollection, (snapshot) => {
-                prospects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                prospects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(p => !p.pagina || p.pagina === 'Prospecção');
                 applyFilters();
             }, (error) => {
                 console.error("Error fetching prospects:", error);
@@ -472,6 +480,7 @@
                 document.getElementById('redesSociais').value = prospect.redesSociais || '';
                 document.getElementById('siteAtual').value = prospect.siteAtual || '';
                 document.getElementById('observacoes').value = prospect.observacoes || '';
+                document.getElementById('pagina').value = prospect.pagina || 'Prospecção';
                 
                 // Marca as tags existentes
                 (prospect.tags || []).forEach(tag => {
@@ -567,6 +576,7 @@
                 redesSociais: document.getElementById('redesSociais').value,
                 siteAtual: document.getElementById('siteAtual').value,
                 observacoes: document.getElementById('observacoes').value,
+                pagina: document.getElementById('pagina').value,
                 tags: selectedTags,
                 updatedAt: serverTimestamp()
             };
@@ -580,6 +590,7 @@
                     generalLog.add(user, 'Update Card', `Card "${data.empresa}" updated`);
                 } else { // Create
                     data.status = 'Pendente';
+                    data.pagina = 'Prospecção';
                     data.createdAt = serverTimestamp();
                     await addDoc(collectionPath, data);
                     generalLog.add(user, 'Create Card', `New card "${data.empresa}" created`);
