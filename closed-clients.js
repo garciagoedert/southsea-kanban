@@ -324,6 +324,17 @@ window.setupUIListeners = function() {
     cancelEditBtn.addEventListener('click', closeEditModal);
     cancelEditFormBtn.addEventListener('click', closeEditModal);
 
+    document.getElementById('openEditMapBtn').addEventListener('click', () => {
+        const address = document.getElementById('editClientEndereco').value;
+        if (address) {
+            const encodedAddress = encodeURIComponent(address);
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+            window.open(mapUrl, '_blank');
+        } else {
+            alert('Por favor, insira um endereço.');
+        }
+    });
+
     // Sidebar toggle
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('main-content');

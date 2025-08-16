@@ -123,7 +123,12 @@
                     </div>
                     <div class="form-group md:col-span-2">
                         <label for="editClientEndereco" class="block text-sm font-medium text-gray-300 mb-1">Endereço</label>
-                        <input type="text" id="editClientEndereco" placeholder="Rua, Número, Bairro, Cidade" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="flex items-center">
+                            <input type="text" id="editClientEndereco" placeholder="Rua, Número, Bairro, Cidade" class="w-full bg-gray-700 border border-gray-600 rounded-l-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="button" id="openEditMapBtn" title="Abrir no Google Maps" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-r-lg">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group md:col-span-2">
                         <label for="editClientRedesSociais" class="block text-sm font-medium text-gray-300 mb-1">Redes Sociais</label>
