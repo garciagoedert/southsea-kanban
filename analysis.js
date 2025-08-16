@@ -21,6 +21,8 @@ const appId = firebaseConfig.appId || 'default-kanban-app';
 
 let revenueChart = null;
 let sectorChart = null;
+let leadSourceChart = null;
+let salesFunnelChart = null;
 
 async function fetchData() {
     const prospectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
@@ -35,7 +37,7 @@ function processData(prospects) {
     const closedClients = prospects.filter(p => p.status === 'Concluído');
     
     // Stats
-    const totalClients = new Set(prospects.map(c => c.empresa)).size;
+    const totalClients = new Set(prospects.filter(p => p.status === 'Concluído').map(c => c.empresa)).size;
     const totalRevenue = closedClients.reduce((sum, p) => sum + (p.ticketEstimado || 0), 0);
     const avgTicket = totalClients > 0 ? totalRevenue / totalClients : 0;
     
@@ -60,13 +62,40 @@ function processData(prospects) {
     });
 
     const clientsBySector = {};
-    const productionAndClosedClients = [...productionClients, ...closedClients];
-    console.log("Combined Production and Closed Clients:", productionAndClosedClients);
-    productionAndClosedClients.forEach(c => {
+    prospects.forEach(c => {
         const sector = c.setor || 'Não especificado';
         clientsBySector[sector] = (clientsBySector[sector] || 0) + 1;
     });
     console.log("Processed Clients by Sector:", clientsBySector);
+
+    const clientsByLeadSource = {};
+    prospects.forEach(c => {
+        const leadSource = c.origemLead || 'Não especificado';
+        clientsByLeadSource[leadSource] = (clientsByLeadSource[leadSource] || 0) + 1;
+    });
+
+    const salesFunnelData = {
+        'Pendente': 0, 'Contactado': 0, 'Reunião': 0,
+        'Proposta': 0, 'Fechado': 0
+    };
+    prospects.forEach(p => {
+        if (salesFunnelData.hasOwnProperty(p.status)) {
+            salesFunnelData[p.status]++;
+        }
+    });
+
+    const totalLeads = prospects.length;
+    const conversionRate = totalLeads > 0 ? (closedClients.length / totalLeads) * 100 : 0;
+
+    let totalClosingTime = 0;
+    closedClients.forEach(c => {
+        if (c.createdAt && c.updatedAt) {
+            const closingTime = c.updatedAt.toDate() - c.createdAt.toDate();
+            totalClosingTime += closingTime;
+        }
+    });
+    const avgClosingTime = closedClients.length > 0 ? (totalClosingTime / closedClients.length) / (1000 * 60 * 60 * 24) : 0; // in days
+
 
     return {
         totalClients,
@@ -74,7 +103,11 @@ function processData(prospects) {
         avgTicket,
         newClientsThisMonth,
         monthlyRevenue,
-        clientsBySector
+        clientsBySector,
+        clientsByLeadSource,
+        salesFunnelData,
+        conversionRate,
+        avgClosingTime
     };
 }
 
@@ -86,6 +119,20 @@ function updateUI(processedData) {
             <div>
                 <div class="text-2xl font-bold">${processedData.totalClients}</div>
                 <div class="text-sm text-gray-400">Total de Clientes</div>
+            </div>
+        </div>
+        <div class="bg-gray-800 p-4 rounded-lg flex items-center gap-4 shadow-md">
+            <div class="bg-gray-700 p-3 rounded-full"><i class="fas fa-chart-line fa-lg text-teal-500"></i></div>
+            <div>
+                <div class="text-2xl font-bold">${processedData.conversionRate.toFixed(1)}%</div>
+                <div class="text-sm text-gray-400">Taxa de Conversão</div>
+            </div>
+        </div>
+        <div class="bg-gray-800 p-4 rounded-lg flex items-center gap-4 shadow-md">
+            <div class="bg-gray-700 p-3 rounded-full"><i class="fas fa-clock fa-lg text-purple-500"></i></div>
+            <div>
+                <div class="text-2xl font-bold">${processedData.avgClosingTime.toFixed(1)} dias</div>
+                <div class="text-sm text-gray-400">Tempo Médio</div>
             </div>
         </div>
         <div class="bg-gray-800 p-4 rounded-lg flex items-center gap-4 shadow-md">
@@ -152,6 +199,56 @@ function updateUI(processedData) {
         options: {
             responsive: true,
             plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    if (leadSourceChart) leadSourceChart.destroy();
+    const leadSourceCtx = document.getElementById('leadSourceChart').getContext('2d');
+    leadSourceChart = new Chart(leadSourceCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(processedData.clientsByLeadSource),
+            datasets: [{
+                label: 'Clientes por Origem do Lead',
+                data: Object.values(processedData.clientsByLeadSource),
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.7)', 'rgba(59, 130, 246, 0.7)', 'rgba(16, 185, 129, 0.7)',
+                    'rgba(234, 179, 8, 0.7)', 'rgba(139, 92, 246, 0.7)', 'rgba(107, 114, 128, 0.7)'
+                ],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    if (salesFunnelChart) salesFunnelChart.destroy();
+    const salesFunnelCtx = document.getElementById('salesFunnelChart').getContext('2d');
+    salesFunnelChart = new Chart(salesFunnelCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(processedData.salesFunnelData),
+            datasets: [{
+                label: 'Número de Clientes',
+                data: Object.values(processedData.salesFunnelData),
+                backgroundColor: [
+                    'rgba(107, 114, 128, 0.7)',
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(234, 179, 8, 0.7)',
+                    'rgba(139, 92, 246, 0.7)',
+                    'rgba(16, 185, 129, 0.7)'
+                ]
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true }
+            }
         }
     });
 }

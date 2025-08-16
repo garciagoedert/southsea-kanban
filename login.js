@@ -23,4 +23,9 @@ function handleLogin(e) {
 }
 
 // --- UI LISTENERS ---
-document.getElementById('login-form').addEventListener('submit', handleLogin);
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+});

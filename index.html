@@ -125,6 +125,10 @@
                         <label for="ticketEstimado" class="block text-sm font-medium text-gray-300 mb-1">Ticket Estimado (R$)</label>
                         <input type="number" id="ticketEstimado" placeholder="15000" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
+                    <div class="form-group">
+                        <label for="origemLead" class="block text-sm font-medium text-gray-300 mb-1">Origem do Lead</label>
+                        <input type="text" id="origemLead" placeholder="Ex: Indicação, Google" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                      <div class="form-group">
                         <label for="telefone" class="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
                         <input type="text" id="telefone" placeholder="(48) 99999-9999" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -177,9 +181,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-700">
-                    <button type="button" id="cancelFormBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Salvar</button>
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-700">
+                    <div id="modalActionButtons" class="flex gap-3">
+                        <button type="button" id="archiveBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">Arquivar</button>
+                        <button type="button" id="deleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Excluir</button>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" id="cancelFormBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Salvar</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -219,29 +229,14 @@
     <!-- Firebase SDK -->
     <script type="module">
         // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { db, appId, app } from './firebase-config.js';
         import { duplicateCardToProduction } from './production.js';
         import { setupUIListeners, loadComponents } from './common-ui.js';
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
-            authDomain: "kanban-652ba.firebaseapp.com",
-            projectId: "kanban-652ba",
-            storageBucket: "kanban-652ba.firebasestorage.app",
-            messagingSenderId: "476390177044",
-            appId: "1:476390177044:web:39e6597eb624006ee06a01",
-            measurementId: "G-KRW331FL5F"
-        };
         
         // --- INITIALIZATION ---
-        const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        const appId = firebaseConfig.appId || 'default-kanban-app';
 
         // --- GLOBAL STATE ---
         let prospects = [];
@@ -343,13 +338,6 @@
             card.innerHTML = `
                 <div class="flex justify-between items-start">
                     <h4 class="font-bold mb-2 flex-grow pr-2">${prospect.empresa}</h4>
-                    <div class="relative">
-                        <button data-action="toggle-menu" class="text-gray-500 hover:text-white text-xs"><i class="fas fa-ellipsis-v"></i></button>
-                        <div data-menu class="absolute right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg z-10 hidden">
-                            <a href="#" data-action="archive" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600">Arquivar</a>
-                            <a href="#" data-action="delete" class="block px-4 py-2 text-sm text-red-400 hover:bg-gray-600">Excluir</a>
-                        </div>
-                    </div>
                 </div>
                 <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sectorColor.bg} ${sectorColor.text}">${prospect.setor}</span>
@@ -358,34 +346,12 @@
                 <div class="flex items-center gap-1 mb-3 flex-wrap">
                     ${tagsHTML}
                 </div>
+                ${prospect.origemLead ? `<p class="text-xs text-gray-400 mb-2"><i class="fas fa-sign-in-alt mr-1"></i> ${prospect.origemLead}</p>` : ''}
                 <p class="text-sm text-green-400 font-semibold">R$ ${prospect.ticketEstimado?.toLocaleString('pt-BR') || 'N/A'}</p>
             `;
             
-            card.addEventListener('click', (e) => {
-                const actionTarget = e.target.closest('[data-action]');
-                if (!actionTarget) {
-                    openFormModal(prospect);
-                    return;
-                }
-
-                e.stopPropagation();
-                const action = actionTarget.dataset.action;
-                const prospectId = prospect.id;
-
-                if (action === 'toggle-menu') {
-                    const menu = card.querySelector('[data-menu]');
-                    menu.classList.toggle('hidden');
-                } else if (action === 'delete') {
-                    const prospectToDelete = prospects.find(p => p.id === prospectId);
-                    showConfirmModal(`Deseja realmente excluir "${prospectToDelete.empresa}"?`, () => {
-                        deleteProspect(prospectId);
-                    });
-                } else if (action === 'archive') {
-                    const prospectToArchive = prospects.find(p => p.id === prospectId);
-                    showConfirmModal(`Deseja arquivar "${prospectToArchive.empresa}"?`, () => {
-                        archiveProspect(prospectId);
-                    });
-                }
+            card.addEventListener('click', () => {
+                openFormModal(prospect);
             });
 
             return card;
@@ -462,6 +428,7 @@
                 if (newStatus === 'Fechado') {
                     if (prospect) {
                         await duplicateCardToProduction(prospect);
+                        await archiveProspect(prospectId); // Arquiva o card original
                     }
                 }
             } catch (error) {
@@ -494,6 +461,9 @@
             prospectForm.reset();
             populateTagsInModal(); // Garante que as tags estejam lá
             const modalTitle = document.getElementById('modalTitle');
+            const modalActionButtons = document.getElementById('modalActionButtons');
+            const archiveBtn = document.getElementById('archiveBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
             const prospectIdInput = document.getElementById('prospectId');
             const whatsappLink = document.getElementById('whatsappLink');
             const telefoneInput = document.getElementById('telefone');
@@ -513,12 +483,14 @@
             telefoneInput.addEventListener('input', updateWhatsAppLink);
 
             if (prospect) {
+                modalActionButtons.classList.remove('hidden');
                 modalTitle.textContent = 'Editar Prospect';
                 prospectIdInput.value = prospect.id;
                 document.getElementById('empresa').value = prospect.empresa || '';
                 document.getElementById('setor').value = prospect.setor || '';
                 document.getElementById('prioridade').value = prospect.prioridade || '';
                 document.getElementById('ticketEstimado').value = prospect.ticketEstimado || '';
+                document.getElementById('origemLead').value = prospect.origemLead || '';
                 document.getElementById('telefone').value = prospect.telefone || '';
                 document.getElementById('email').value = prospect.email || '';
                 document.getElementById('cpf').value = prospect.cpf || '';
@@ -535,9 +507,29 @@
                     if (checkbox) checkbox.checked = true;
                 });
 
+                // Listeners para os botões de ação
+                const archiveHandler = () => {
+                    showConfirmModal(`Deseja arquivar "${prospect.empresa}"?`, () => {
+                        archiveProspect(prospect.id);
+                        closeFormModal();
+                    });
+                };
+                const deleteHandler = () => {
+                    showConfirmModal(`Deseja realmente excluir "${prospect.empresa}"?`, () => {
+                        deleteProspect(prospect.id);
+                        closeFormModal();
+                    });
+                };
+
+                archiveBtn.onclick = archiveHandler;
+                deleteBtn.onclick = deleteHandler;
+
             } else {
+                modalActionButtons.classList.add('hidden');
                 modalTitle.textContent = 'Adicionar Novo Prospect';
                 prospectIdInput.value = '';
+                archiveBtn.onclick = null;
+                deleteBtn.onclick = null;
             }
             updateWhatsAppLink(); // Initial check when modal opens
             formModal.style.display = 'flex';
@@ -616,6 +608,7 @@
                 setor: document.getElementById('setor').value,
                 prioridade: parseInt(document.getElementById('prioridade').value),
                 ticketEstimado: parseInt(document.getElementById('ticketEstimado').value) || 0,
+                origemLead: document.getElementById('origemLead').value,
                 telefone: document.getElementById('telefone').value,
                 email: document.getElementById('email').value,
                 cpf: document.getElementById('cpf').value,
@@ -633,6 +626,10 @@
             try {
                 const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
                 if (prospectId) { // Update
+                    // Se a página for alterada para Produção, defina o status inicial de produção
+                    if (data.pagina === 'Produção') {
+                        data.status = 'Produção // V1';
+                    }
                     const prospectRef = doc(collectionPath, prospectId);
                     await updateDoc(prospectRef, data);
                     generalLog.add(user, 'Update Card', `Card "${data.empresa}" updated`);

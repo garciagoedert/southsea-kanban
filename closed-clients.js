@@ -1,24 +1,10 @@
 // Firebase Imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, where, doc, deleteDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyAKTAVsJKQISRYamsX7SMmh9uCJ6d2bMEs",
-    authDomain: "kanban-652ba.firebaseapp.com",
-    projectId: "kanban-652ba",
-    storageBucket: "kanban-652ba.firebasestorage.app",
-    messagingSenderId: "476390177044",
-    appId: "1:476390177044:web:39e6597eb624006ee06a01",
-    measurementId: "G-KRW331FL5F"
-};
+import { collection, onSnapshot, query, where, doc, deleteDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { db, appId, app } from './firebase-config.js';
 
 // --- INITIALIZATION ---
-const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = firebaseConfig.appId || 'default-kanban-app';
 
 // --- GLOBAL STATE ---
 let closedClientsListener = null;
@@ -130,6 +116,7 @@ function createClientCard(client) {
             <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">P${client.prioridade}</span>
         </div>
         <p class="text-sm text-green-400 font-semibold mb-2">R$ ${client.ticketEstimado?.toLocaleString('pt-BR') || 'N/A'}</p>
+        ${client.origemLead ? `<p class="text-xs text-gray-400 mt-2 mb-2"><i class="fas fa-sign-in-alt mr-1"></i> ${client.origemLead}</p>` : ''}
         <div class="flex-grow"></div>
         <p class="text-xs text-gray-400 mt-auto">Concluído em: ${client.updatedAt ? new Date(client.updatedAt.seconds * 1000).toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
     `;
@@ -177,6 +164,7 @@ function openEditModal(client) {
     document.getElementById('editClientSetor').value = client.setor || '';
     document.getElementById('editClientPrioridade').value = client.prioridade || '';
     document.getElementById('editClientTicket').value = client.ticketEstimado || '';
+    document.getElementById('editOrigemLead').value = client.origemLead || '';
     document.getElementById('editClientTelefone').value = client.telefone || '';
     document.getElementById('editClientEmail').value = client.email || '';
     document.getElementById('editClientCpf').value = client.cpf || '';
@@ -200,6 +188,7 @@ async function handleUpdateClient(e) {
         setor: document.getElementById('editClientSetor').value,
         prioridade: parseInt(document.getElementById('editClientPrioridade').value, 10),
         ticketEstimado: parseFloat(document.getElementById('editClientTicket').value) || 0,
+        origemLead: document.getElementById('editOrigemLead').value,
         telefone: document.getElementById('editClientTelefone').value,
         email: document.getElementById('editClientEmail').value,
         cpf: document.getElementById('editClientCpf').value,
