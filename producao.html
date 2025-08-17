@@ -224,6 +224,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { db, appId, app } from './firebase-config.js';
+        import { setupUIListeners, loadComponents } from './common-ui.js';
 
         // --- INITIALIZATION ---
         const auth = getAuth(app);
@@ -783,59 +784,6 @@
             document.body.removeChild(link);
         }
 
-        // --- UI LISTENERS ---
-        function setupUIListeners() {
-            // Sidebar toggle
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            const menuToggle = document.getElementById('menu-toggle');
-            const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
-            const backdrop = document.getElementById('sidebar-backdrop');
-
-            if (sidebar && menuToggle && sidebarCloseBtn && backdrop) {
-                const toggleSidebar = () => {
-                    const isHidden = sidebar.classList.contains('-translate-x-full');
-                    if (isHidden) {
-                        sidebar.classList.remove('-translate-x-full');
-                        backdrop.classList.remove('hidden');
-                        if (window.innerWidth >= 768) { 
-                             mainContent.classList.add('md:ml-64');
-                        }
-                    } else {
-                        sidebar.classList.add('-translate-x-full');
-                        backdrop.classList.add('hidden');
-                        if (window.innerWidth >= 768) {
-                            mainContent.classList.remove('md:ml-64');
-                        }
-                    }
-                };
-                menuToggle.addEventListener('click', toggleSidebar);
-                sidebarCloseBtn.addEventListener('click', toggleSidebar);
-                backdrop.addEventListener('click', toggleSidebar);
-            }
-
-            // Modal Buttons
-            document.getElementById('addProspectBtnHeader')?.addEventListener('click', () => openFormModal());
-            document.getElementById('exportBtnSidebar')?.addEventListener('click', exportData);
-            document.getElementById('importBtnSidebar')?.addEventListener('click', openImportModal);
-            
-            // Form and Modal controls
-            document.getElementById('closeFormModalBtn').addEventListener('click', closeFormModal);
-            document.getElementById('cancelFormBtn').addEventListener('click', closeFormModal);
-            prospectForm.addEventListener('submit', handleFormSubmit);
-            document.getElementById('closeImportModalBtn').addEventListener('click', closeImportModal);
-            document.getElementById('cancelImportBtn').addEventListener('click', closeImportModal);
-            document.getElementById('processImportBtn').addEventListener('click', handleImport);
-
-            // Filters
-            document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-            document.getElementById('priorityFilter').addEventListener('change', applyFilters);
-            document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('priorityFilter').value = '';
-                applyFilters();
-            });
-        }
         
         async function createProductionCard() {
             const newCard = {
@@ -859,63 +807,6 @@
         }
         
         // --- INITIALIZE APP ---
-        async function loadComponents() {
-            const headerContainer = document.getElementById('header-container');
-            const sidebarContainer = document.getElementById('sidebar-container');
-            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
-            try {
-                const [headerRes, sidebarRes] = await Promise.all([
-                    fetch('header.html'),
-                    fetch(`sidebar.html?v=${new Date().getTime()}`)
-                ]);
-
-                if (!headerRes.ok || !sidebarRes.ok) {
-                    throw new Error('Failed to fetch components');
-                }
-
-                headerContainer.innerHTML = await headerRes.text();
-                sidebarContainer.innerHTML = await sidebarRes.text();
-
-                // Set active link in sidebar
-                const sidebarLinks = sidebarContainer.querySelectorAll('nav a');
-                sidebarLinks.forEach(link => {
-                    const linkPage = link.getAttribute('href').split('/').pop();
-                    if (linkPage === currentPage) {
-                        link.classList.add('bg-blue-500', 'text-white');
-                        link.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                        
-                        if (linkPage === 'index.html') {
-                            const prospectActions = document.getElementById('prospect-actions');
-                            if(prospectActions) {
-                                prospectActions.classList.remove('hidden');
-                                prospectActions.classList.add('flex');
-                            }
-                        }
-                    }
-                });
-                
-                // Re-initialize UI listeners that depend on the loaded components
-                setupUIListeners();
-
-                const addProductionBtn = document.getElementById('addProspectBtnHeader');
-                if (addProductionBtn) {
-                    addProductionBtn.innerHTML = '<i class="fas fa-plus"></i> Nova produção';
-                    
-                    // Clone and replace the button to remove all old event listeners
-                    const newBtn = addProductionBtn.cloneNode(true);
-                    addProductionBtn.parentNode.replaceChild(newBtn, addProductionBtn);
-                    
-                    newBtn.addEventListener('click', createProductionCard);
-                }
-
-            } catch (error) {
-                console.error('Error loading components:', error);
-                headerContainer.innerHTML = '<p class="text-red-500 p-4">Error loading header.</p>';
-                sidebarContainer.innerHTML = '<p class="text-red-500 p-4">Error loading sidebar.</p>';
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('openMapBtn').addEventListener('click', () => {
                 const address = document.getElementById('endereco').value;
@@ -928,7 +819,31 @@
                 }
             });
 
-            loadComponents().then(() => {
+            loadComponents(() => {
+                // Page-specific setup
+                setupUIListeners({
+                    // Omit openFormModal for the header button on this page
+                    exportData,
+                    openImportModal,
+                    closeFormModal,
+                    handleFormSubmit,
+                    closeImportModal,
+                    handleImport,
+                    applyFilters
+                });
+
+                const addProductionBtn = document.getElementById('addProspectBtnHeader');
+                if (addProductionBtn) {
+                    const btnText = addProductionBtn.querySelector('span');
+                    if (btnText) {
+                        btnText.textContent = 'Nova Produção';
+                    }
+                    // Replace the button to ensure no old listeners are attached
+                    const newBtn = addProductionBtn.cloneNode(true);
+                    addProductionBtn.parentNode.replaceChild(newBtn, addProductionBtn);
+                    newBtn.addEventListener('click', createProductionCard);
+                }
+
                 const urlParams = new URLSearchParams(window.location.search);
                 const cardIdToOpen = urlParams.get('cardId');
                 if (cardIdToOpen) {
