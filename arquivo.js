@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, doc, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, doc, updateDoc, arrayUnion, Timestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { loadComponents, setupUIListeners } from './common-ui.js';
 
@@ -201,11 +201,48 @@ function openEditModal(lead) {
     editBtn.onclick = () => setFormEditable(true);
     cancelEditFormBtn.onclick = () => openEditModal(lead);
 
+    const unarchiveBtn = document.getElementById('unarchiveBtn');
+    unarchiveBtn.onclick = () => unarchiveLead(lead.id);
+
+    const deleteBtn = document.getElementById('deleteBtn');
+    deleteBtn.onclick = () => deleteLead(lead.id);
+
     document.getElementById('editClientModal').style.display = 'flex';
 }
 
 function closeEditModal() {
     document.getElementById('editClientModal').style.display = 'none';
+}
+
+async function unarchiveLead(leadId) {
+    if (!confirm('Tem certeza que deseja desarquivar este lead?')) return;
+
+    try {
+        const leadRef = doc(db, 'artifacts', '1:476390177044:web:39e6597eb624006ee06a01', 'public', 'data', 'prospects', leadId);
+        await updateDoc(leadRef, {
+            pagina: 'Prospecção',
+            status: 'Pendente'
+        });
+        closeEditModal();
+        loadArchivedLeads(document.getElementById('search-input').value);
+    } catch (error) {
+        console.error("Error unarchiving lead:", error);
+        alert("Erro ao desarquivar o lead.");
+    }
+}
+
+async function deleteLead(leadId) {
+    if (!confirm('Tem certeza que deseja excluir este lead permanentemente? Esta ação não pode ser desfeita.')) return;
+
+    try {
+        const leadRef = doc(db, 'artifacts', '1:476390177044:web:39e6597eb624006ee06a01', 'public', 'data', 'prospects', leadId);
+        await deleteDoc(leadRef);
+        closeEditModal();
+        loadArchivedLeads(document.getElementById('search-input').value);
+    } catch (error) {
+        console.error("Error deleting lead:", error);
+        alert("Erro ao excluir o lead.");
+    }
 }
 
 async function saveLeadChanges(e) {
