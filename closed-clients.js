@@ -1,6 +1,6 @@
 // Firebase Imports
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { collection, onSnapshot, query, where, doc, deleteDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, onSnapshot, query, where, doc, deleteDoc, updateDoc, Timestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db, appId, app } from './firebase-config.js';
 
 // --- INITIALIZATION ---
@@ -158,6 +158,29 @@ function createClientCard(client) {
 }
 
 // --- EDIT MODAL ---
+function renderContactLog(logs = []) {
+    const logContainer = document.getElementById('contactLogContainer');
+    if (!logContainer) return;
+
+    if (!logs || logs.length === 0) {
+        logContainer.innerHTML = '<p class="text-gray-500 text-sm">Nenhum contato registrado.</p>';
+        return;
+    }
+
+    logContainer.innerHTML = logs
+        .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
+        .map(log => {
+            const date = log.timestamp ? log.timestamp.toDate().toLocaleString('pt-BR') : 'Data pendente';
+            const author = log.author || 'Sistema';
+            return `
+                <div class="bg-gray-700/50 p-2 rounded-md">
+                    <p class="text-sm text-gray-300 whitespace-pre-wrap">${log.description}</p>
+                    <p class="text-xs text-gray-500 text-right mt-1">${author} - ${date}</p>
+                </div>
+            `;
+        }).join('');
+}
+
 function openEditModal(client) {
     document.getElementById('editClientId').value = client.id;
     document.getElementById('editClientEmpresa').value = client.empresa || '';
@@ -173,6 +196,53 @@ function openEditModal(client) {
     document.getElementById('editClientRedesSociais').value = client.redesSociais || '';
     document.getElementById('editClientSiteAtual').value = client.siteAtual || '';
     document.getElementById('editClientObservacoes').value = client.observacoes || '';
+
+    renderContactLog(client.contactLog);
+
+    const fields = editClientForm.querySelectorAll('input, select, textarea');
+    const editBtn = document.getElementById('editBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelEditFormBtn = document.getElementById('cancelEditFormBtn');
+    const addContactLogBtn = document.getElementById('addContactLogBtn');
+    const newContactLogTextarea = document.getElementById('newContactLog');
+    const contactLogSection = newContactLogTextarea.parentElement;
+
+    const setFormEditable = (isEditable) => {
+        fields.forEach(field => {
+            if (field.id !== 'editClientId') field.disabled = !isEditable;
+        });
+        contactLogSection.style.display = isEditable ? 'flex' : 'none';
+        editBtn.classList.toggle('hidden', isEditable);
+        saveBtn.classList.toggle('hidden', !isEditable);
+        cancelEditFormBtn.classList.toggle('hidden', !isEditable);
+    };
+
+    const newAddContactBtn = addContactLogBtn.cloneNode(true);
+    addContactLogBtn.parentNode.replaceChild(newAddContactBtn, addContactLogBtn);
+    newAddContactBtn.addEventListener('click', async () => {
+        const description = newContactLogTextarea.value.trim();
+        if (!description) return alert('Por favor, adicione uma descrição para o contato.');
+        
+        try {
+            const clientRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', client.id);
+            await updateDoc(clientRef, {
+                contactLog: arrayUnion({
+                    author: auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous',
+                    description: description,
+                    timestamp: Timestamp.now()
+                })
+            });
+            newContactLogTextarea.value = '';
+        } catch (error) {
+            console.error("Error adding contact log:", error);
+            alert("Erro ao adicionar o registro de contato.");
+        }
+    });
+
+    setFormEditable(false);
+    editBtn.onclick = () => setFormEditable(true);
+    cancelEditFormBtn.onclick = () => openEditModal(client);
+
     editClientModal.style.display = 'flex';
 }
 

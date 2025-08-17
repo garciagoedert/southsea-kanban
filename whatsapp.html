@@ -162,6 +162,16 @@
                         <label for="observacoes" class="block text-sm font-medium text-gray-300 mb-1">Observações</label>
                         <textarea id="observacoes" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
                     </div>
+                    <div class="form-group md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Log de Contatos</label>
+                        <div id="contactLogContainer" class="max-h-40 overflow-y-auto custom-scrollbar bg-gray-900/50 p-3 rounded-lg space-y-3 mb-3 border border-gray-700">
+                            <!-- Log entries will be injected here -->
+                        </div>
+                        <div class="flex gap-2">
+                            <textarea id="newContactLog" rows="2" placeholder="Adicionar novo contato..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
+                            <button type="button" id="addContactLogBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg self-start">Adicionar</button>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="pagina" class="block text-sm font-medium text-gray-300 mb-1">Página</label>
                         <select id="pagina" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -182,9 +192,10 @@
                         <button type="button" id="archiveBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">Arquivar</button>
                         <button type="button" id="deleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Excluir</button>
                     </div>
-                    <div class="flex gap-3">
-                        <button type="button" id="cancelFormBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Salvar</button>
+                    <div id="formControls" class="flex gap-3">
+                        <button type="button" id="editBtn" class="bg-blue-600 hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg">Editar</button>
+                        <button type="button" id="cancelFormBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg hidden">Cancelar</button>
+                        <button type="submit" id="saveBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg hidden">Salvar</button>
                     </div>
                 </div>
             </form>
@@ -226,7 +237,7 @@
     <script type="module">
         // Firebase Imports
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { db, appId, app } from './firebase-config.js';
         import { duplicateCardToProduction } from './production.js';
         import { setupUIListeners, loadComponents } from './common-ui.js';
@@ -452,16 +463,58 @@
         }
 
         // --- MODAL HANDLING ---
+        function renderContactLog(logs = []) {
+            const logContainer = document.getElementById('contactLogContainer');
+            if (!logContainer) return;
+
+            if (!logs || logs.length === 0) {
+                logContainer.innerHTML = '<p class="text-gray-500 text-sm">Nenhum contato registrado.</p>';
+                return;
+            }
+
+            logContainer.innerHTML = logs
+                .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
+                .map(log => {
+                    const date = log.timestamp ? log.timestamp.toDate().toLocaleString('pt-BR') : 'Data pendente';
+                    const author = log.author || 'Sistema';
+                    return `
+                        <div class="bg-gray-700/50 p-2 rounded-md">
+                            <p class="text-sm text-gray-300 whitespace-pre-wrap">${log.description}</p>
+                            <p class="text-xs text-gray-500 text-right mt-1">${author} - ${date}</p>
+                        </div>
+                    `;
+                }).join('');
+        }
+
         function openFormModal(prospect = null) {
             prospectForm.reset();
-            populateTagsInModal(); // Garante que as tags estejam lá
+            populateTagsInModal();
+
             const modalTitle = document.getElementById('modalTitle');
-            const modalActionButtons = document.getElementById('modalActionButtons');
-            const archiveBtn = document.getElementById('archiveBtn');
-            const deleteBtn = document.getElementById('deleteBtn');
             const prospectIdInput = document.getElementById('prospectId');
             const whatsappLink = document.getElementById('whatsappLink');
             const telefoneInput = document.getElementById('telefone');
+            const modalActionButtons = document.getElementById('modalActionButtons');
+            const archiveBtn = document.getElementById('archiveBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+
+            const fields = prospectForm.querySelectorAll('input, select, textarea');
+            const editBtn = document.getElementById('editBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const cancelFormBtn = document.getElementById('cancelFormBtn');
+            const addContactLogBtn = document.getElementById('addContactLogBtn');
+            const newContactLogTextarea = document.getElementById('newContactLog');
+            const contactLogSection = newContactLogTextarea.parentElement;
+
+            const setFormEditable = (isEditable) => {
+                fields.forEach(field => {
+                    if (field.id !== 'prospectId') field.disabled = !isEditable;
+                });
+                contactLogSection.style.display = isEditable ? 'flex' : 'none';
+                editBtn.classList.toggle('hidden', isEditable);
+                saveBtn.classList.toggle('hidden', !isEditable);
+                cancelFormBtn.classList.toggle('hidden', !isEditable);
+            };
 
             const updateWhatsAppLink = () => {
                 const phone = telefoneInput.value.replace(/\D/g, '');
@@ -474,13 +527,36 @@
                     whatsappLink.classList.remove('inline-flex');
                 }
             };
-
             telefoneInput.addEventListener('input', updateWhatsAppLink);
+
+            const newAddContactBtn = addContactLogBtn.cloneNode(true);
+            addContactLogBtn.parentNode.replaceChild(newAddContactBtn, addContactLogBtn);
+            newAddContactBtn.addEventListener('click', async () => {
+                const description = newContactLogTextarea.value.trim();
+                if (!description) return alert('Por favor, adicione uma descrição para o contato.');
+                if (!prospect || !prospect.id) return alert('Salve o card antes de adicionar um log.');
+
+                try {
+                    const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospect.id);
+                    await updateDoc(prospectRef, {
+                        contactLog: arrayUnion({
+                            author: auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous',
+                            description: description,
+                            timestamp: serverTimestamp()
+                        })
+                    });
+                    newContactLogTextarea.value = '';
+                } catch (error) {
+                    console.error("Error adding contact log:", error);
+                    alert("Erro ao adicionar o registro de contato.");
+                }
+            });
 
             if (prospect) {
                 modalActionButtons.classList.remove('hidden');
-                modalTitle.textContent = 'Editar Prospect';
+                modalTitle.textContent = 'Detalhes do Prospect';
                 prospectIdInput.value = prospect.id;
+                
                 document.getElementById('empresa').value = prospect.empresa || '';
                 document.getElementById('setor').value = prospect.setor || '';
                 document.getElementById('prioridade').value = prospect.prioridade || '';
@@ -494,38 +570,30 @@
                 document.getElementById('siteAtual').value = prospect.siteAtual || '';
                 document.getElementById('observacoes').value = prospect.observacoes || '';
                 document.getElementById('pagina').value = prospect.pagina || 'WhatsApp';
-                
-                // Marca as tags existentes
+
                 (prospect.tags || []).forEach(tag => {
                     const checkbox = document.getElementById(`tag-${tag}`);
                     if (checkbox) checkbox.checked = true;
                 });
 
-                // Listeners para os botões de ação
-                const archiveHandler = () => {
-                    showConfirmModal(`Deseja arquivar "${prospect.empresa}"?`, () => {
-                        archiveProspect(prospect.id);
-                        closeFormModal();
-                    });
-                };
-                const deleteHandler = () => {
-                    showConfirmModal(`Deseja realmente excluir "${prospect.empresa}"?`, () => {
-                        deleteProspect(prospect.id);
-                        closeFormModal();
-                    });
-                };
+                renderContactLog(prospect.contactLog);
 
-                archiveBtn.onclick = archiveHandler;
-                deleteBtn.onclick = deleteHandler;
+                archiveBtn.onclick = () => showConfirmModal(`Deseja arquivar "${prospect.empresa}"?`, () => { archiveProspect(prospect.id); closeFormModal(); });
+                deleteBtn.onclick = () => showConfirmModal(`Deseja realmente excluir "${prospect.empresa}"?`, () => { deleteProspect(prospect.id); closeFormModal(); });
+
+                setFormEditable(false);
+                editBtn.onclick = () => setFormEditable(true);
+                cancelFormBtn.onclick = () => openFormModal(prospect);
 
             } else {
                 modalActionButtons.classList.add('hidden');
                 modalTitle.textContent = 'Adicionar Novo Prospect';
                 prospectIdInput.value = '';
-                archiveBtn.onclick = null;
-                deleteBtn.onclick = null;
+                renderContactLog([]);
+                setFormEditable(true);
             }
-            updateWhatsAppLink(); // Initial check when modal opens
+
+            updateWhatsAppLink();
             formModal.style.display = 'flex';
         }
 
@@ -619,7 +687,6 @@
             try {
                 const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
                 if (prospectId) { // Update
-                    // Se a página for alterada para Produção, defina o status inicial de produção
                     if (data.pagina === 'Produção') {
                         data.status = 'Produção // V1';
                     }
@@ -630,6 +697,7 @@
                     data.status = 'Pendente';
                     data.pagina = 'WhatsApp';
                     data.createdAt = serverTimestamp();
+                    // contactLog is not added on creation, only on update.
                     await addDoc(collectionPath, data);
                     generalLog.add(user, 'Create Card', `New card "${data.empresa}" created`);
                 }

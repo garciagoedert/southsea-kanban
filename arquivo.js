@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, doc, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { loadComponents, setupUIListeners } from './common-ui.js';
 
@@ -15,12 +15,25 @@ export function initializeAppWithFirebase(firebaseConfig) {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             if (sessionStorage.getItem('isLoggedIn') === 'true') {
-                createModal();
                 loadComponents(() => {
                     setupUIListeners({}); // Setup sidebar interactivity
                     loadArchivedLeads();
                     const searchInput = document.getElementById('search-input');
                     searchInput.addEventListener('input', () => loadArchivedLeads(searchInput.value));
+                    
+                    document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+                    document.getElementById('cancelEditFormBtn').addEventListener('click', closeEditModal);
+                    document.getElementById('editClientForm').addEventListener('submit', saveLeadChanges);
+                    document.getElementById('openEditMapBtn').addEventListener('click', () => {
+                        const address = document.getElementById('editClientEndereco').value;
+                        if (address) {
+                            const encodedAddress = encodeURIComponent(address);
+                            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+                            window.open(mapUrl, '_blank');
+                        } else {
+                            alert('Por favor, insira um endereço.');
+                        }
+                    });
                 });
             } else {
                 window.location.href = 'login.html';
@@ -103,79 +116,116 @@ async function loadArchivedLeads(searchTerm = '') {
     }
 }
 
-function createModal() {
-    const modalHTML = `
-    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-gray-700">
-                <h2 class="text-xl font-bold">Editar Lead Arquivado</h2>
-                <button id="closeModalBtn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <form id="editForm" class="p-6 overflow-y-auto custom-scrollbar">
-                <input type="hidden" id="editLeadId">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="form-group">
-                        <label for="empresa" class="block text-sm font-medium text-gray-300 mb-1">Empresa *</label>
-                        <input type="text" id="empresa" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="setor" class="block text-sm font-medium text-gray-300 mb-1">Setor *</label>
-                        <input type="text" id="setor" placeholder="Ex: Imobiliário" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="endereco" class="block text-sm font-medium text-gray-300 mb-1">Endereço</label>
-                        <div class="flex items-center">
-                            <input type="text" id="endereco" placeholder="Rua, Número, Bairro, Cidade" class="w-full bg-gray-700 border border-gray-600 rounded-l-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <button type="button" id="openMapBtn" title="Abrir no Google Maps" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-r-lg">
-                                <i class="fas fa-map-marker-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-700">
-                    <button type="button" id="cancelBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+function renderContactLog(logs = []) {
+    const logContainer = document.getElementById('contactLogContainer');
+    if (!logContainer) return;
 
-    document.getElementById('closeModalBtn').addEventListener('click', closeEditModal);
-    document.getElementById('cancelBtn').addEventListener('click', closeEditModal);
-    document.getElementById('editForm').addEventListener('submit', saveLeadChanges);
-    document.getElementById('openMapBtn').addEventListener('click', () => {
-        const address = document.getElementById('endereco').value;
-        if (address) {
-            const encodedAddress = encodeURIComponent(address);
-            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-            window.open(mapUrl, '_blank');
-        } else {
-            alert('Por favor, insira um endereço.');
-        }
-    });
+    if (!logs || logs.length === 0) {
+        logContainer.innerHTML = '<p class="text-gray-500 text-sm">Nenhum contato registrado.</p>';
+        return;
+    }
+
+    logContainer.innerHTML = logs
+        .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
+        .map(log => {
+            const date = log.timestamp ? log.timestamp.toDate().toLocaleString('pt-BR') : 'Data pendente';
+            const author = log.author || 'Sistema';
+            return `
+                <div class="bg-gray-700/50 p-2 rounded-md">
+                    <p class="text-sm text-gray-300 whitespace-pre-wrap">${log.description}</p>
+                    <p class="text-xs text-gray-500 text-right mt-1">${author} - ${date}</p>
+                </div>
+            `;
+        }).join('');
 }
 
 function openEditModal(lead) {
-    document.getElementById('editLeadId').value = lead.id;
-    document.getElementById('empresa').value = lead.empresa || '';
-    document.getElementById('setor').value = lead.setor || '';
-    document.getElementById('endereco').value = lead.endereco || '';
-    document.getElementById('editModal').style.display = 'flex';
+    document.getElementById('editClientId').value = lead.id;
+    document.getElementById('editClientEmpresa').value = lead.empresa || '';
+    document.getElementById('editClientSetor').value = lead.setor || '';
+    document.getElementById('editClientPrioridade').value = lead.prioridade || '';
+    document.getElementById('editClientTicket').value = lead.ticketEstimado || '';
+    document.getElementById('editOrigemLead').value = lead.origemLead || '';
+    document.getElementById('editClientTelefone').value = lead.telefone || '';
+    document.getElementById('editClientEmail').value = lead.email || '';
+    document.getElementById('editClientCpf').value = lead.cpf || '';
+    document.getElementById('editClientCnpj').value = lead.cnpj || '';
+    document.getElementById('editClientEndereco').value = lead.endereco || '';
+    document.getElementById('editClientRedesSociais').value = lead.redesSociais || '';
+    document.getElementById('editClientSiteAtual').value = lead.siteAtual || '';
+    document.getElementById('editClientObservacoes').value = lead.observacoes || '';
+
+    renderContactLog(lead.contactLog);
+
+    const fields = document.getElementById('editClientForm').querySelectorAll('input, select, textarea');
+    const editBtn = document.getElementById('editBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelEditFormBtn = document.getElementById('cancelEditFormBtn');
+    const addContactLogBtn = document.getElementById('addContactLogBtn');
+    const newContactLogTextarea = document.getElementById('newContactLog');
+    const contactLogSection = newContactLogTextarea.parentElement;
+
+    const setFormEditable = (isEditable) => {
+        fields.forEach(field => {
+            if (field.id !== 'editClientId') field.disabled = !isEditable;
+        });
+        contactLogSection.style.display = isEditable ? 'flex' : 'none';
+        editBtn.classList.toggle('hidden', isEditable);
+        saveBtn.classList.toggle('hidden', !isEditable);
+        cancelEditFormBtn.classList.toggle('hidden', !isEditable);
+    };
+
+    const newAddContactBtn = addContactLogBtn.cloneNode(true);
+    addContactLogBtn.parentNode.replaceChild(newAddContactBtn, addContactLogBtn);
+    newAddContactBtn.addEventListener('click', async () => {
+        const description = newContactLogTextarea.value.trim();
+        if (!description) return alert('Por favor, adicione uma descrição para o contato.');
+        
+        try {
+            const clientRef = doc(db, 'artifacts', '1:476390177044:web:39e6597eb624006ee06a01', 'public', 'data', 'prospects', lead.id);
+            await updateDoc(clientRef, {
+                contactLog: arrayUnion({
+                    author: auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous',
+                    description: description,
+                    timestamp: Timestamp.now()
+                })
+            });
+            newContactLogTextarea.value = '';
+        } catch (error) {
+            console.error("Error adding contact log:", error);
+            alert("Erro ao adicionar o registro de contato.");
+        }
+    });
+
+    setFormEditable(false);
+    editBtn.onclick = () => setFormEditable(true);
+    cancelEditFormBtn.onclick = () => openEditModal(lead);
+
+    document.getElementById('editClientModal').style.display = 'flex';
 }
 
 function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
+    document.getElementById('editClientModal').style.display = 'none';
 }
 
 async function saveLeadChanges(e) {
     e.preventDefault();
-    const leadId = document.getElementById('editLeadId').value;
+    const leadId = document.getElementById('editClientId').value;
     const data = {
-        empresa: document.getElementById('empresa').value,
-        setor: document.getElementById('setor').value,
-        endereco: document.getElementById('endereco').value,
+        empresa: document.getElementById('editClientEmpresa').value,
+        setor: document.getElementById('editClientSetor').value,
+        prioridade: parseInt(document.getElementById('editClientPrioridade').value, 10),
+        ticketEstimado: parseFloat(document.getElementById('editClientTicket').value) || 0,
+        origemLead: document.getElementById('editOrigemLead').value,
+        telefone: document.getElementById('editClientTelefone').value,
+        email: document.getElementById('editClientEmail').value,
+        cpf: document.getElementById('editClientCpf').value,
+        cnpj: document.getElementById('editClientCnpj').value,
+        endereco: document.getElementById('editClientEndereco').value,
+        redesSociais: document.getElementById('editClientRedesSociais').value,
+        siteAtual: document.getElementById('editClientSiteAtual').value,
+        observacoes: document.getElementById('editClientObservacoes').value,
+        updatedAt: Timestamp.now()
     };
 
     try {
