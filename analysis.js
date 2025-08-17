@@ -198,7 +198,11 @@ function updateUI(processedData) {
         },
         options: {
             responsive: true,
-            plugins: { legend: { position: 'bottom' } }
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
         }
     });
 
