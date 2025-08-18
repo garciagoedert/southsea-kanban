@@ -23,9 +23,9 @@
         }
         
         /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         
         /* Dragging styles */
         .dragging {
@@ -95,7 +95,7 @@
                 </div>
                 <button id="closeFormModalBtn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <form id="prospectForm" class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+            <form id="prospectForm" class="p-4 sm:p-6 overflow-y-auto">
                 <input type="hidden" id="prospectId">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-group">
@@ -156,7 +156,7 @@
                     </div>
                     <div class="form-group md:col-span-2">
                         <label for="redesSociais" class="block text-sm font-medium text-gray-300 mb-1">Redes Sociais</label>
-                        <textarea id="redesSociais" rows="2" placeholder="Links do Instagram, Facebook, etc." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
+                        <textarea id="redesSociais" rows="2" placeholder="Links do Instagram, Facebook, etc." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                     </div>
                     <div class="form-group md:col-span-2">
                         <label for="siteAtual" class="block text-sm font-medium text-gray-300 mb-1">Site Atual</label>
@@ -164,15 +164,15 @@
                     </div>
                     <div class="form-group md:col-span-2">
                         <label for="observacoes" class="block text-sm font-medium text-gray-300 mb-1">Observações</label>
-                        <textarea id="observacoes" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
+                        <textarea id="observacoes" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                     </div>
                     <div class="form-group md:col-span-2">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Log de Contatos</label>
-                        <div id="contactLogContainer" class="max-h-40 overflow-y-auto custom-scrollbar bg-gray-900/50 p-3 rounded-lg space-y-3 mb-3 border border-gray-700">
+                        <div id="contactLogContainer" class="max-h-40 overflow-y-auto bg-gray-900/50 p-3 rounded-lg space-y-3 mb-3 border border-gray-700">
                             <!-- Log entries will be injected here -->
                         </div>
                         <div class="flex gap-2">
-                            <textarea id="newContactLog" rows="2" placeholder="Adicionar novo contato..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"></textarea>
+                            <textarea id="newContactLog" rows="2" placeholder="Adicionar novo contato..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                             <button type="button" id="addContactLogBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg self-start">Adicionar</button>
                         </div>
                     </div>
@@ -213,10 +213,10 @@
                 <h2 class="text-xl font-bold">Importar Leads</h2>
                 <button id="closeImportModalBtn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar">
+            <div class="p-6 overflow-y-auto">
                 <p class="text-gray-400 mb-4">Copie e cole os dados da sua planilha (formato CSV). A primeira linha deve ser o cabeçalho e as colunas devem estar na seguinte ordem:</p>
                 <code class="block bg-gray-900 text-gray-300 p-2 rounded-md text-xs mb-4">Empresa,Setor,Prioridade,Ticket Estimado,Telefone,Email,CPF,CNPJ,Endereço,Redes Sociais,Site,Observações</code>
-                <textarea id="csvData" rows="10" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar" placeholder="Cole seus dados aqui..."></textarea>
+                <textarea id="csvData" rows="10" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cole seus dados aqui..."></textarea>
             </div>
             <div class="flex justify-end gap-3 p-6 border-t border-gray-700">
                 <button type="button" id="cancelImportBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
@@ -318,7 +318,7 @@
                 if (isMobile) {
                     columnEl.className = 'bg-gray-800 rounded-lg flex flex-col';
                     contentHTML = `
-                        <div class="overflow-x-auto custom-scrollbar pb-3">
+                        <div class="overflow-x-auto pb-3">
                             <div id="${columnId}" data-status="${status}" class="column-content flex flex-nowrap space-x-3 p-2 min-h-[120px] pr-2">
                                 <!-- Cards will be injected here -->
                             </div>
@@ -327,7 +327,7 @@
                 } else {
                     columnEl.className = 'bg-gray-800 rounded-lg flex flex-col overflow-hidden';
                     contentHTML = `
-                        <div id="${columnId}" data-status="${status}" class="column-content flex-grow p-2 space-y-3 rounded-md custom-scrollbar overflow-y-auto">
+                        <div id="${columnId}" data-status="${status}" class="column-content flex-grow p-2 space-y-3 rounded-md overflow-y-auto">
                            <!-- Cards will be injected here -->
                         </div>
                     `;
