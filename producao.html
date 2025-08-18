@@ -46,11 +46,11 @@
         <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 z-30 hidden"></div>
 
         <!-- Main Content -->
-        <main id="main-content" class="flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out">
+        <main id="main-content" class="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out">
             <div id="header-container"></div>
 
             <!-- Board Content -->
-            <div class="flex-grow p-4 md:p-6 lg:p-8 flex flex-col overflow-hidden">
+            <div class="p-4 md:p-6 lg:p-8 flex flex-col flex-1 min-h-0 overflow-y-auto">
                 <!-- Stats -->
                 <div id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <!-- Stat cards will be injected here by JS -->
@@ -76,7 +76,7 @@
                 </div>
 
                 <!-- Kanban Board -->
-                <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 flex-grow min-h-0">
+                <div id="kanban-board" class="flex flex-col md:grid md:grid-cols-3 lg:grid-cols-6 gap-6 flex-1 min-h-0">
                     <!-- Columns will be injected here by JS -->
                 </div>
             </div>
@@ -305,38 +305,61 @@
         // --- RENDERING ---
         function renderBoard() {
             kanbanBoard.innerHTML = ''; 
-            
+            const isMobile = window.innerWidth < 768;
+
             COLUMN_NAMES.forEach(status => {
                 const columnId = COLUMNS[status];
                 const columnProspects = filteredProspects.filter(p => p.status === status);
                 
                 const columnEl = document.createElement('div');
-                columnEl.className = 'bg-gray-800 rounded-lg p-1 flex flex-col min-h-0';
+                
+                let contentHTML;
+                if (isMobile) {
+                    columnEl.className = 'bg-gray-800 rounded-lg flex flex-col';
+                    contentHTML = `
+                        <div class="overflow-x-auto custom-scrollbar pb-3">
+                            <div id="${columnId}" data-status="${status}" class="column-content flex flex-nowrap space-x-3 p-2 min-h-[120px] pr-2">
+                                <!-- Cards will be injected here -->
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    columnEl.className = 'bg-gray-800 rounded-lg flex flex-col overflow-hidden';
+                    contentHTML = `
+                        <div id="${columnId}" data-status="${status}" class="column-content flex-grow p-2 space-y-3 rounded-md custom-scrollbar overflow-y-auto">
+                           <!-- Cards will be injected here -->
+                        </div>
+                    `;
+                }
+
                 columnEl.innerHTML = `
                     <div class="flex justify-between items-center p-3 flex-shrink-0">
                         <h3 class="font-bold">${status}</h3>
                         <span class="bg-gray-700 text-gray-300 text-xs font-semibold px-2 py-1 rounded-full">${columnProspects.length}</span>
                     </div>
-                    <div id="${columnId}" data-status="${status}" class="column-content flex-grow p-2 space-y-3 rounded-md custom-scrollbar overflow-y-auto">
-                        ${columnProspects.length === 0 ? '<div class="text-center text-gray-500 p-4 text-sm">Arraste um card aqui</div>' : ''}
-                    </div>
+                    ${contentHTML}
                 `;
                 kanbanBoard.appendChild(columnEl);
                 
                 const contentArea = columnEl.querySelector('.column-content');
-                columnProspects
-                    .sort((a, b) => b.prioridade - a.prioridade)
-                    .forEach(prospect => {
-                        contentArea.appendChild(createProspectCard(prospect));
-                    });
+                if (columnProspects.length === 0) {
+                    contentArea.innerHTML = `<div class="text-center text-gray-500 p-4 text-sm flex-shrink-0 w-full">Nenhum card aqui</div>`;
+                } else {
+                    columnProspects
+                        .sort((a, b) => b.prioridade - a.prioridade)
+                        .forEach(prospect => {
+                            contentArea.appendChild(createProspectCard(prospect, isMobile));
+                        });
+                }
             });
             addDragAndDropHandlers();
             updateStats();
         }
 
-        function createProspectCard(prospect) {
+        function createProspectCard(prospect, isMobile = false) {
             const card = document.createElement('div');
-            card.className = `prospect-card bg-gray-900 p-3 rounded-lg shadow-md cursor-pointer border-l-4 transition-all duration-200 hover:shadow-xl hover:bg-gray-700`;
+            const mobileClasses = isMobile ? 'w-72 flex-shrink-0' : '';
+            card.className = `prospect-card bg-gray-900 p-3 rounded-lg shadow-md cursor-pointer border-l-4 transition-all duration-200 hover:shadow-xl hover:bg-gray-700 ${mobileClasses}`;
             card.style.borderLeftColor = getPriorityColor(prospect.prioridade);
             card.draggable = true;
             card.dataset.id = prospect.id;
@@ -347,10 +370,11 @@
                 <div class="flex justify-between items-start">
                     <h4 class="font-bold mb-2 flex-grow pr-2">${prospect.empresa}</h4>
                 </div>
-                <div class="flex items-center gap-2 mb-3">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sectorColor.bg} ${sectorColor.text}">${prospect.setor}</span>
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">P${prospect.prioridade}</span>
                 </div>
+                ${prospect.origemLead ? `<p class="text-xs text-gray-400 mb-2"><i class="fas fa-sign-in-alt mr-1"></i> ${prospect.origemLead}</p>` : ''}
                 <p class="text-sm text-green-400 font-semibold">R$ ${prospect.ticketEstimado?.toLocaleString('pt-BR') || 'N/A'}</p>
             `;
             
@@ -808,6 +832,14 @@
         
         // --- INITIALIZE APP ---
         document.addEventListener('DOMContentLoaded', () => {
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    renderBoard();
+                }, 250);
+            });
+
             document.getElementById('openMapBtn').addEventListener('click', () => {
                 const address = document.getElementById('endereco').value;
                 if (address) {
