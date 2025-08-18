@@ -69,6 +69,55 @@ function setupUIListeners(handlers = {}) {
             applyFilters();
         });
     }
+    
+    // Add modal close listeners
+    setupModalCloseListeners({ closeFormModal, closeImportModal, closeConfirmModal: handlers.closeConfirmModal });
+}
+
+function setupModalCloseListeners(handlers = {}) {
+    const { closeFormModal, closeImportModal, closeConfirmModal } = handlers;
+
+    const formModal = document.getElementById('formModal');
+    const importModal = document.getElementById('importModal');
+    const confirmModal = document.getElementById('confirmModal');
+
+    // Close on Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            if (formModal && formModal.style.display !== 'none' && closeFormModal) {
+                closeFormModal();
+            }
+            if (importModal && importModal.style.display !== 'none' && closeImportModal) {
+                closeImportModal();
+            }
+            if (confirmModal && confirmModal.style.display !== 'none' && closeConfirmModal) {
+                closeConfirmModal();
+            }
+        }
+    });
+
+    // Close on backdrop click
+    if (formModal && closeFormModal) {
+        formModal.addEventListener('click', (event) => {
+            if (event.target === formModal) {
+                closeFormModal();
+            }
+        });
+    }
+    if (importModal && closeImportModal) {
+        importModal.addEventListener('click', (event) => {
+            if (event.target === importModal) {
+                closeImportModal();
+            }
+        });
+    }
+    if (confirmModal && closeConfirmModal) {
+        confirmModal.addEventListener('click', (event) => {
+            if (event.target === confirmModal) {
+                closeConfirmModal();
+            }
+        });
+    }
 }
 
 async function loadComponents(pageSpecificSetup) {
