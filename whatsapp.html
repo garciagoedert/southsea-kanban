@@ -255,8 +255,8 @@
         let prospectsListener = null;
 
         const COLUMNS = {
-            'Pendente': 'pendente', 'Contactado': 'contactado', 'Reunião': 'reuniao',
-            'Proposta': 'proposta', 'Fechado': 'fechado'
+            'Base': 'pendente', 'Back': 'contactado', 'M1': 'reuniao',
+            'M2': 'proposta', 'M3': 'fechado'
         };
         const COLUMN_NAMES = Object.keys(COLUMNS);
         const TAGS = ['Whatsapp', 'Ligação', 'Email', 'Follow-up', 'Urgente'];
@@ -459,7 +459,7 @@
                     updatedAt: serverTimestamp()
                 });
                 generalLog.add(user, 'Move Card', `Card "${prospect.empresa}" moved from ${oldStatus} to ${newStatus}`);
-                if (newStatus === 'Fechado') {
+                if (newStatus === 'M3') {
                     if (prospect) {
                         await duplicateCardToProduction(prospect);
                         await archiveProspect(prospectId); // Arquiva o card original
@@ -724,7 +724,7 @@
                     await updateDoc(prospectRef, data);
                     generalLog.add(user, 'Update Card', `Card "${data.empresa}" updated`);
                 } else { // Create
-                    data.status = 'Pendente';
+                    data.status = 'Base';
                     data.pagina = 'WhatsApp';
                     data.createdAt = serverTimestamp();
                     // contactLog is not added on creation, only on update.
