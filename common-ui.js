@@ -75,6 +75,7 @@ function setupUIListeners(handlers = {}) {
 }
 
 function setupModalCloseListeners(handlers = {}) {
+    console.log('Setting up modal close listeners...');
     const { closeFormModal, closeImportModal, closeConfirmModal } = handlers;
 
     const formModal = document.getElementById('formModal');
@@ -84,13 +85,17 @@ function setupModalCloseListeners(handlers = {}) {
     // Close on Escape key
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-            if (formModal && formModal.style.display !== 'none' && closeFormModal) {
+            console.log('Escape key pressed.');
+            if (formModal && !formModal.classList.contains('hidden') && closeFormModal) {
+                console.log('Closing form modal via Escape.');
                 closeFormModal();
             }
-            if (importModal && importModal.style.display !== 'none' && closeImportModal) {
+            if (importModal && !importModal.classList.contains('hidden') && closeImportModal) {
+                console.log('Closing import modal via Escape.');
                 closeImportModal();
             }
-            if (confirmModal && confirmModal.style.display !== 'none' && closeConfirmModal) {
+            if (confirmModal && !confirmModal.classList.contains('hidden') && closeConfirmModal) {
+                console.log('Closing confirm modal via Escape.');
                 closeConfirmModal();
             }
         }
@@ -99,21 +104,27 @@ function setupModalCloseListeners(handlers = {}) {
     // Close on backdrop click
     if (formModal && closeFormModal) {
         formModal.addEventListener('click', (event) => {
+            console.log('Form modal clicked. Target:', event.target);
             if (event.target === formModal) {
+                console.log('Backdrop clicked, closing form modal.');
                 closeFormModal();
             }
         });
     }
     if (importModal && closeImportModal) {
         importModal.addEventListener('click', (event) => {
+            console.log('Import modal clicked. Target:', event.target);
             if (event.target === importModal) {
+                console.log('Backdrop clicked, closing import modal.');
                 closeImportModal();
             }
         });
     }
     if (confirmModal && closeConfirmModal) {
         confirmModal.addEventListener('click', (event) => {
+            console.log('Confirm modal clicked. Target:', event.target);
             if (event.target === confirmModal) {
+                console.log('Backdrop clicked, closing confirm modal.');
                 closeConfirmModal();
             }
         });

@@ -669,25 +669,30 @@
             }
 
             updateWhatsAppLink();
-            formModal.style.display = 'flex';
+            formModal.classList.remove('hidden');
+            formModal.classList.add('flex');
         }
 
         function closeFormModal() {
-            formModal.style.display = 'none';
+            formModal.classList.add('hidden');
+            formModal.classList.remove('flex');
         }
 
         function openImportModal() {
-            importModal.style.display = 'flex';
+            importModal.classList.remove('hidden');
+            importModal.classList.add('flex');
         }
 
         function closeImportModal() {
-            importModal.style.display = 'none';
+            importModal.classList.add('hidden');
+            importModal.classList.remove('flex');
             document.getElementById('csvData').value = '';
         }
         
         function showConfirmModal(message, onConfirm) {
             document.getElementById('confirmMessage').textContent = message;
-            confirmModal.style.display = 'flex';
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
             
             const confirmBtn = document.getElementById('confirmActionBtn');
             const cancelBtn = document.getElementById('cancelConfirmBtn');
@@ -713,7 +718,8 @@
         }
 
         function closeConfirmModal() {
-            confirmModal.style.display = 'none';
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
         }
 
         // --- CRUD OPERATIONS ---
