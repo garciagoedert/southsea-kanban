@@ -93,6 +93,10 @@
             <form id="prospectForm" class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="prospectId">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group md:col-span-2">
+                        <label for="empresa" class="block text-sm font-medium text-gray-300 mb-1">Empresa *</label>
+                        <input type="text" id="empresa" placeholder="Nome da Empresa" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
                      <div class="form-group">
                         <label for="telefone" class="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
                         <input type="text" id="telefone" placeholder="(48) 99999-9999" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -119,10 +123,6 @@
                     <div class="form-group">
                         <label for="ticketEstimado" class="block text-sm font-medium text-gray-300 mb-1">Ticket Estimado (R$)</label>
                         <input type="number" id="ticketEstimado" placeholder="15000" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                     <div class="form-group">
-                        <label for="telefone" class="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
-                        <input type="text" id="telefone" placeholder="(48) 99999-9999" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="form-group">
                         <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
