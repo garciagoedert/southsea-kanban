@@ -188,6 +188,7 @@ function openEditModal(client) {
     document.getElementById('editClientPrioridade').value = client.prioridade || '';
     document.getElementById('editClientTicket').value = client.ticketEstimado || '';
     document.getElementById('editOrigemLead').value = client.origemLead || '';
+    document.getElementById('editResponsavel').value = client.responsavel || '';
     document.getElementById('editClientTelefone').value = client.telefone || '';
     document.getElementById('editClientEmail').value = client.email || '';
     document.getElementById('editClientCpf').value = client.cpf || '';
@@ -259,6 +260,7 @@ async function handleUpdateClient(e) {
         prioridade: parseInt(document.getElementById('editClientPrioridade').value, 10),
         ticketEstimado: parseFloat(document.getElementById('editClientTicket').value) || 0,
         origemLead: document.getElementById('editOrigemLead').value,
+        responsavel: document.getElementById('editResponsavel').value,
         telefone: document.getElementById('editClientTelefone').value,
         email: document.getElementById('editClientEmail').value,
         cpf: document.getElementById('editClientCpf').value,

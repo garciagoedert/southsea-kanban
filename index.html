@@ -125,6 +125,10 @@
                         <label for="origemLead" class="block text-sm font-medium text-gray-300 mb-1">Origem do Lead</label>
                         <input type="text" id="origemLead" placeholder="Ex: Indicação, Google" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
+                    <div class="form-group">
+                        <label for="responsavel" class="block text-sm font-medium text-gray-300 mb-1">Nome do responsável</label>
+                        <input type="text" id="responsavel" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                      <div class="form-group">
                         <label for="telefone" class="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
                         <input type="text" id="telefone" placeholder="(48) 99999-9999" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -636,6 +640,7 @@
                 document.getElementById('prioridade').value = prospect.prioridade || '';
                 document.getElementById('ticketEstimado').value = prospect.ticketEstimado || '';
                 document.getElementById('origemLead').value = prospect.origemLead || '';
+                document.getElementById('responsavel').value = prospect.responsavel || '';
                 document.getElementById('telefone').value = prospect.telefone || '';
                 document.getElementById('email').value = prospect.email || '';
                 document.getElementById('cpf').value = prospect.cpf || '';
@@ -752,6 +757,7 @@
                 prioridade: parseInt(document.getElementById('prioridade').value),
                 ticketEstimado: parseInt(document.getElementById('ticketEstimado').value) || 0,
                 origemLead: document.getElementById('origemLead').value,
+                responsavel: document.getElementById('responsavel').value,
                 telefone: document.getElementById('telefone').value,
                 email: document.getElementById('email').value,
                 cpf: document.getElementById('cpf').value,

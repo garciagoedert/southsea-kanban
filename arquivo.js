@@ -146,6 +146,7 @@ function openEditModal(lead) {
     document.getElementById('editClientPrioridade').value = lead.prioridade || '';
     document.getElementById('editClientTicket').value = lead.ticketEstimado || '';
     document.getElementById('editOrigemLead').value = lead.origemLead || '';
+    document.getElementById('editResponsavel').value = lead.responsavel || '';
     document.getElementById('editClientTelefone').value = lead.telefone || '';
     document.getElementById('editClientEmail').value = lead.email || '';
     document.getElementById('editClientCpf').value = lead.cpf || '';
@@ -254,6 +255,7 @@ async function saveLeadChanges(e) {
         prioridade: parseInt(document.getElementById('editClientPrioridade').value, 10),
         ticketEstimado: parseFloat(document.getElementById('editClientTicket').value) || 0,
         origemLead: document.getElementById('editOrigemLead').value,
+        responsavel: document.getElementById('editResponsavel').value,
         telefone: document.getElementById('editClientTelefone').value,
         email: document.getElementById('editClientEmail').value,
         cpf: document.getElementById('editClientCpf').value,
