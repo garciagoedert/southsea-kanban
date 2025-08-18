@@ -490,9 +490,9 @@
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
             logContainer.innerHTML = logs
-                .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
+                .sort((a, b) => (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp.getTime()) - (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp.getTime()))
                 .map((log, index) => {
-                    const date = log.timestamp ? log.timestamp.toDate().toLocaleString('pt-BR') : 'Data pendente';
+                    const date = log.timestamp ? (log.timestamp.toDate ? log.timestamp.toDate().toLocaleString('pt-BR') : new Date(log.timestamp).toLocaleString('pt-BR')) : 'Data pendente';
                     const author = log.author || 'Sistema';
                     const deleteButtonHTML = isAdmin ? `<button data-log-index="${index}" class="delete-log-btn text-red-500 hover:text-red-400 text-xs ml-2">&times;</button>` : '';
                     return `
@@ -581,14 +581,23 @@
                 }
 
                 try {
+                    const newLog = {
+                        author: sessionStorage.getItem('userName') || (auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous'),
+                        description: description,
+                        timestamp: new Date()
+                    };
+
                     const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospect.id);
                     await updateDoc(prospectRef, {
-                        contactLog: arrayUnion({
-                            author: sessionStorage.getItem('userName') || (auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous'),
-                            description: description,
-                            timestamp: new Date()
-                        })
+                        contactLog: arrayUnion(newLog)
                     });
+
+                    if (!prospect.contactLog) {
+                        prospect.contactLog = [];
+                    }
+                    prospect.contactLog.push(newLog);
+                    renderContactLog(prospect);
+
                     newContactLogTextarea.value = '';
                 } catch (error) {
                     console.error("Error adding contact log:", error);
