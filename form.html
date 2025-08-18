@@ -108,9 +108,13 @@
                 await addDoc(prospectsCollection, data);
                 
                 // Sucesso
-                statusMessage.textContent = 'Obrigado! Seus dados foram enviados com sucesso.';
+                statusMessage.textContent = 'Obrigado! Seus dados foram enviados. Redirecionando para o WhatsApp...';
                 statusMessage.className = 'text-green-400 text-center mt-4';
-                leadForm.reset();
+                
+                // Aguarda 2 segundos e redireciona
+                setTimeout(() => {
+                    window.location.href = 'https://wa.me/5548988373993';
+                }, 2000);
 
             } catch (error) {
                 console.error("Erro ao salvar o lead:", error);
