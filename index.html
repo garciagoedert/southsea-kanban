@@ -241,7 +241,7 @@
     <script type="module">
         // Firebase Imports
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, writeBatch, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { db, appId, app } from './firebase-config.js';
         import { duplicateCardToProduction } from './production.js';
         import { setupUIListeners, loadComponents } from './common-ui.js';
@@ -496,27 +496,56 @@
         }
 
         // --- MODAL HANDLING ---
-        function renderContactLog(logs = []) {
+        function renderContactLog(prospect) {
             const logContainer = document.getElementById('contactLogContainer');
             if (!logContainer) return;
 
-            if (!logs || logs.length === 0) {
+            const logs = prospect.contactLog || [];
+
+            if (logs.length === 0) {
                 logContainer.innerHTML = '<p class="text-gray-500 text-sm">Nenhum contato registrado.</p>';
                 return;
             }
 
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+
             logContainer.innerHTML = logs
                 .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                .map(log => {
+                .map((log, index) => {
                     const date = log.timestamp ? log.timestamp.toDate().toLocaleString('pt-BR') : 'Data pendente';
                     const author = log.author || 'Sistema';
+                    const deleteButtonHTML = isAdmin ? `<button data-log-index="${index}" class="delete-log-btn text-red-500 hover:text-red-400 text-xs ml-2">&times;</button>` : '';
                     return `
-                        <div class="bg-gray-700/50 p-2 rounded-md">
-                            <p class="text-sm text-gray-300 whitespace-pre-wrap">${log.description}</p>
-                            <p class="text-xs text-gray-500 text-right mt-1">${author} - ${date}</p>
+                        <div class="bg-gray-700/50 p-2 rounded-md flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-300 whitespace-pre-wrap">${log.description}</p>
+                                <p class="text-xs text-gray-500 mt-1">${author} - ${date}</p>
+                            </div>
+                            ${deleteButtonHTML}
                         </div>
                     `;
                 }).join('');
+
+            if (isAdmin) {
+                logContainer.querySelectorAll('.delete-log-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const logIndex = parseInt(e.target.dataset.logIndex, 10);
+                        const logToDelete = logs[logIndex];
+                        
+                        if (confirm('Tem certeza que deseja excluir este log?')) {
+                            try {
+                                const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospect.id);
+                                await updateDoc(prospectRef, {
+                                    contactLog: arrayRemove(logToDelete)
+                                });
+                            } catch (error) {
+                                console.error("Error deleting contact log:", error);
+                                alert("Erro ao excluir o registro de contato.");
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         function openFormModal(prospect = null) {
@@ -567,15 +596,18 @@
             newAddContactBtn.addEventListener('click', async () => {
                 const description = newContactLogTextarea.value.trim();
                 if (!description) return alert('Por favor, adicione uma descrição para o contato.');
-                if (!prospect || !prospect.id) return alert('Salve o card antes de adicionar um log.');
+                
+                if (!prospect || !prospect.id) {
+                    return alert('Salve o card antes de adicionar um log.');
+                }
 
                 try {
                     const prospectRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', prospect.id);
                     await updateDoc(prospectRef, {
                         contactLog: arrayUnion({
-                            author: auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous',
+                            author: sessionStorage.getItem('userName') || (auth.currentUser ? auth.currentUser.email || 'anonymous' : 'anonymous'),
                             description: description,
-                            timestamp: serverTimestamp()
+                            timestamp: new Date()
                         })
                     });
                     newContactLogTextarea.value = '';
@@ -610,7 +642,7 @@
                     if (checkbox) checkbox.checked = true;
                 });
 
-                renderContactLog(prospect.contactLog);
+                renderContactLog(prospect);
 
                 archiveBtn.onclick = () => showConfirmModal(`Deseja arquivar "${prospect.empresa}"?`, () => { archiveProspect(prospect.id); closeFormModal(); });
                 deleteBtn.onclick = () => showConfirmModal(`Deseja realmente excluir "${prospect.empresa}"?`, () => { deleteProspect(prospect.id); closeFormModal(); });
@@ -623,7 +655,7 @@
                 modalActionButtons.classList.add('hidden');
                 modalTitle.textContent = 'Adicionar Novo Prospect';
                 prospectIdInput.value = '';
-                renderContactLog([]);
+                renderContactLog({ contactLog: [] });
                 setFormEditable(true);
             }
 
