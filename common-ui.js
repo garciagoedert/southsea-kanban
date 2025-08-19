@@ -173,13 +173,15 @@ async function applyWhitelabelSettings() {
                 .text-primary { color: ${settings.primaryColor} !important; }
                 .border-primary { border-color: ${settings.primaryColor} !important; }
                 .hover\\:bg-primary-dark:hover { background-color: ${shadeColor(settings.primaryColor, -20)} !important; }
+                .bg-primary-light { background-color: ${shadeColor(settings.primaryColor, 20)} !important; }
+                .hover\\:bg-primary:hover { background-color: ${settings.primaryColor} !important; }
             `;
             document.head.appendChild(style);
         }
     }
 }
 
-// Helper function to darken a hex color
+// Helper function to lighten or darken a hex color
 function shadeColor(color, percent) {
     let R = parseInt(color.substring(1, 3), 16);
     let G = parseInt(color.substring(3, 5), 16);
@@ -225,7 +227,7 @@ async function loadComponents(pageSpecificSetup) {
         sidebarLinks.forEach(link => {
             const linkPage = link.getAttribute('href').split('/').pop();
             if (linkPage === currentPage) {
-                link.classList.add('bg-primary', 'text-white');
+                link.classList.add('bg-primary-light', 'text-white');
                 link.classList.remove('bg-gray-700', 'hover:bg-gray-600');
 
                 if (linkPage === 'index.html') {

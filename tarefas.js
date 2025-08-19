@@ -118,7 +118,7 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
         switch (priority) {
             case 'urgent': return 'text-red-400';
             case 'high': return 'text-yellow-400';
-            case 'normal': return 'text-blue-400';
+            case 'normal': return 'text-primary';
             case 'low': return 'text-green-400';
             default: return 'text-gray-400';
         }
@@ -171,7 +171,7 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
             const priorityText = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
             
             const clientLinkHTML = linkedCard 
-                ? `<a href="index.html?cardId=${linkedCard.id}" class="text-blue-400 hover:underline" onclick="event.stopPropagation()">${linkedCard.empresa}</a>`
+                ? `<a href="index.html?cardId=${linkedCard.id}" class="text-primary hover:underline" onclick="event.stopPropagation()">${linkedCard.empresa}</a>`
                 : (task.parent_entity || 'N/A');
 
             row.innerHTML = `
