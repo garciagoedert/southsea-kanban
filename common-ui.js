@@ -150,35 +150,34 @@ async function loadWhitelabelSettings() {
 
 async function applyWhitelabelSettings() {
     const settings = await loadWhitelabelSettings();
-    if (settings) {
-        // Apply header logo
-        if (settings.headerLogoUrl) {
-            const headerLogo = document.querySelector('#header-container img');
-            if (headerLogo) {
-                headerLogo.src = settings.headerLogoUrl;
-            }
-        }
-        // Apply sidebar logo
-        if (settings.sidebarLogoUrl) {
-            const sidebarLogo = document.querySelector('#sidebar-container img');
-            if (sidebarLogo) {
-                sidebarLogo.src = settings.sidebarLogoUrl;
-            }
-        }
-        // Apply primary color
-        if (settings.primaryColor) {
-            const style = document.createElement('style');
-            style.innerHTML = `
-                .bg-primary { background-color: ${settings.primaryColor} !important; }
-                .text-primary { color: ${settings.primaryColor} !important; }
-                .border-primary { border-color: ${settings.primaryColor} !important; }
-                .hover\\:bg-primary-dark:hover { background-color: ${shadeColor(settings.primaryColor, -20)} !important; }
-                .bg-primary-light { background-color: ${shadeColor(settings.primaryColor, 20)} !important; }
-                .hover\\:bg-primary:hover { background-color: ${settings.primaryColor} !important; }
-            `;
-            document.head.appendChild(style);
+    const primaryColor = settings?.primaryColor || '#2563eb'; // Default to Tailwind's blue-600
+
+    // Apply header logo
+    if (settings?.headerLogoUrl) {
+        const headerLogo = document.querySelector('#header-container img');
+        if (headerLogo) {
+            headerLogo.src = settings.headerLogoUrl;
         }
     }
+    // Apply sidebar logo
+    if (settings?.sidebarLogoUrl) {
+        const sidebarLogo = document.querySelector('#sidebar-container img');
+        if (sidebarLogo) {
+            sidebarLogo.src = settings.sidebarLogoUrl;
+        }
+    }
+    
+    // Apply primary color
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .bg-primary { background-color: ${primaryColor} !important; }
+        .text-primary { color: ${primaryColor} !important; }
+        .border-primary { border-color: ${primaryColor} !important; }
+        .hover\\:bg-primary-dark:hover { background-color: ${shadeColor(primaryColor, -20)} !important; }
+        .bg-primary-light { background-color: ${shadeColor(primaryColor, 20)} !important; }
+        .hover\\:bg-primary:hover { background-color: ${primaryColor} !important; }
+    `;
+    document.head.appendChild(style);
 }
 
 // Helper function to lighten or darken a hex color
