@@ -131,6 +131,75 @@ function setupModalCloseListeners(handlers = {}) {
     }
 }
 
+import { db } from './firebase-config.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+async function loadWhitelabelSettings() {
+    try {
+        const settingsRef = doc(db, 'settings', 'whitelabel');
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists()) {
+            return docSnap.data();
+        }
+        return null;
+    } catch (error) {
+        console.error("Error loading whitelabel settings:", error);
+        return null;
+    }
+}
+
+async function applyWhitelabelSettings() {
+    const settings = await loadWhitelabelSettings();
+    if (settings) {
+        // Apply header logo
+        if (settings.headerLogoUrl) {
+            const headerLogo = document.querySelector('#header-container img');
+            if (headerLogo) {
+                headerLogo.src = settings.headerLogoUrl;
+            }
+        }
+        // Apply sidebar logo
+        if (settings.sidebarLogoUrl) {
+            const sidebarLogo = document.querySelector('#sidebar-container img');
+            if (sidebarLogo) {
+                sidebarLogo.src = settings.sidebarLogoUrl;
+            }
+        }
+        // Apply primary color
+        if (settings.primaryColor) {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .bg-primary { background-color: ${settings.primaryColor} !important; }
+                .text-primary { color: ${settings.primaryColor} !important; }
+                .border-primary { border-color: ${settings.primaryColor} !important; }
+                .hover\\:bg-primary-dark:hover { background-color: ${shadeColor(settings.primaryColor, -20)} !important; }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+}
+
+// Helper function to darken a hex color
+function shadeColor(color, percent) {
+    let R = parseInt(color.substring(1, 3), 16);
+    let G = parseInt(color.substring(3, 5), 16);
+    let B = parseInt(color.substring(5, 7), 16);
+
+    R = parseInt(R * (100 + percent) / 100);
+    G = parseInt(G * (100 + percent) / 100);
+    B = parseInt(B * (100 + percent) / 100);
+
+    R = (R < 255) ? R : 255;
+    G = (G < 255) ? G : 255;
+    B = (B < 255) ? B : 255;
+
+    const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
+    const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
+    const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
+
+    return "#" + RR + GG + BB;
+}
+
 async function loadComponents(pageSpecificSetup) {
     const headerContainer = document.getElementById('header-container');
     const sidebarContainer = document.getElementById('sidebar-container');
@@ -149,12 +218,14 @@ async function loadComponents(pageSpecificSetup) {
         headerContainer.innerHTML = await headerRes.text();
         sidebarContainer.innerHTML = await sidebarRes.text();
 
+        await applyWhitelabelSettings();
+
         // Set active link in sidebar
         const sidebarLinks = sidebarContainer.querySelectorAll('nav a');
         sidebarLinks.forEach(link => {
             const linkPage = link.getAttribute('href').split('/').pop();
             if (linkPage === currentPage) {
-                link.classList.add('bg-blue-500', 'text-white');
+                link.classList.add('bg-primary', 'text-white');
                 link.classList.remove('bg-gray-700', 'hover:bg-gray-600');
 
                 if (linkPage === 'index.html') {

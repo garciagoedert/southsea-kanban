@@ -96,7 +96,7 @@ async function loadArchivedLeads(searchTerm = '') {
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-gray-700 text-right">
-                    <button data-id="${lead.id}" class="edit-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Editar</button>
+                    <button data-id="${lead.id}" class="edit-btn bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-lg">Editar</button>
                 </div>
             `;
             container.appendChild(card);

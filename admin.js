@@ -1,4 +1,34 @@
 import { loadComponents, setupUIListeners } from './common-ui.js';
+import { db } from './firebase-config.js';
+import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+async function saveWhitelabelSettings(settings) {
+    try {
+        const settingsRef = doc(db, 'settings', 'whitelabel');
+        await setDoc(settingsRef, settings, { merge: true });
+        alert('Configurações salvas com sucesso!');
+    } catch (error) {
+        console.error("Erro ao salvar configurações:", error);
+        alert('Erro ao salvar configurações.');
+    }
+}
+
+async function loadWhitelabelSettings() {
+    try {
+        const settingsRef = doc(db, 'settings', 'whitelabel');
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            console.log("Nenhum documento de configuração encontrado!");
+            return {};
+        }
+    } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+        return {};
+    }
+}
+
 
 function setupAdminPage() {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -17,6 +47,35 @@ function setupAdminPage() {
     const hiddenEmailInput = document.getElementById('user-email-hidden');
     const cancelEditBtn = document.getElementById('cancel-edit');
 
+    // Whitelabel form elements
+    const whitelabelForm = document.getElementById('whitelabel-form');
+    const headerLogoInput = document.getElementById('header-logo');
+    const sidebarLogoInput = document.getElementById('sidebar-logo');
+    const primaryColorInput = document.getElementById('primary-color');
+
+    async function populateWhitelabelForm() {
+        const settings = await loadWhitelabelSettings();
+        if (settings.headerLogoUrl) {
+            headerLogoInput.value = settings.headerLogoUrl;
+        }
+        if (settings.sidebarLogoUrl) {
+            sidebarLogoInput.value = settings.sidebarLogoUrl;
+        }
+        if (settings.primaryColor) {
+            primaryColorInput.value = settings.primaryColor;
+        }
+    }
+
+    function handleWhitelabelFormSubmit(e) {
+        e.preventDefault();
+        const settings = {
+            headerLogoUrl: headerLogoInput.value,
+            sidebarLogoUrl: sidebarLogoInput.value,
+            primaryColor: primaryColorInput.value,
+        };
+        saveWhitelabelSettings(settings);
+    }
+
     function renderUsers() {
         userTableBody.innerHTML = '';
         const users = getAllUsers();
@@ -27,7 +86,7 @@ function setupAdminPage() {
                 <td class="py-2 px-4 border-b border-gray-700">${user.email}</td>
                 <td class="py-2 px-4 border-b border-gray-700">${user.isAdmin ? 'Sim' : 'Não'}</td>
                 <td class="py-2 px-4 border-b border-gray-700">
-                    <button class="text-blue-400 hover:text-blue-600 mr-2 edit-btn" data-email="${user.email}">
+                    <button class="text-primary hover:text-primary-dark mr-2 edit-btn" data-email="${user.email}">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="text-red-400 hover:text-red-600 delete-btn" data-email="${user.email}">
@@ -98,8 +157,10 @@ function setupAdminPage() {
 
     cancelEditBtn.addEventListener('click', resetForm);
     userForm.addEventListener('submit', handleFormSubmit);
+    whitelabelForm.addEventListener('submit', handleWhitelabelFormSubmit);
 
     renderUsers();
+    populateWhitelabelForm();
     setupUIListeners();
 }
 

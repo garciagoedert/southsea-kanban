@@ -23,16 +23,18 @@ let allUsers = [];
 onAuthStateChanged(auth, (currentUser) => {
     if (currentUser) {
         user = currentUser;
-        console.log("User authenticated:", user.uid);
+        console.log("Usuário autenticado:", user.uid);
         // Fetch all users to populate user list and group modal
         const usersCollection = collection(db, 'users');
         onSnapshot(usersCollection, (snapshot) => {
             allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             populateUserList();
             populateGroupMembers();
+        }, (error) => {
+            console.error("Erro ao buscar usuários:", error);
         });
     } else {
-        console.log("User not authenticated.");
+        console.log("Usuário não autenticado.");
     }
 });
 
@@ -63,6 +65,9 @@ function populateUserList() {
                 console.log('Starting group chat with chatId:', currentChatId);
                 chatTitle.textContent = group.name;
                 loadMessages(doc.id);
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.placeholder = "Digite sua mensagem...";
             };
             userList.appendChild(groupElement);
         });
@@ -87,7 +92,7 @@ function populateGroupMembers() {
 async function startChat(otherUserId) {
     const chatId = [user.uid, otherUserId].sort().join('_');
     currentChatId = chatId;
-    console.log('Starting chat with chatId:', currentChatId);
+    console.log('Iniciando chat com chatId:', currentChatId);
 
     const chatRef = doc(db, 'chats', chatId);
     const chatSnap = await getDoc(chatRef);
@@ -102,19 +107,24 @@ async function startChat(otherUserId) {
 
     chatTitle.textContent = allUsers.find(u => u.id === otherUserId).displayName || 'Chat';
     loadMessages(chatId);
+    messageInput.disabled = false;
+    sendButton.disabled = false;
+    messageInput.placeholder = "Digite sua mensagem...";
 }
 
 function loadMessages(chatId) {
+    console.log("Carregando mensagens para o chat:", chatId);
     const messagesCollection = collection(db, 'chats', chatId, 'messages');
     const q = query(messagesCollection, orderBy('timestamp'));
 
     onSnapshot(q, (snapshot) => {
+        console.log("Mensagens recebidas:", snapshot.docs.length);
         chatMessages.innerHTML = '';
         snapshot.forEach(doc => {
             const message = doc.data();
             const messageElement = document.createElement('div');
             const isSender = message.senderId === user.uid;
-            messageElement.className = `p-2 rounded-lg mb-2 max-w-xs ${isSender ? 'bg-blue-600 self-end' : 'bg-gray-700 self-start'}`;
+            messageElement.className = `p-2 rounded-lg mb-2 max-w-xs ${isSender ? 'bg-primary self-end' : 'bg-gray-700 self-start'}`;
             messageElement.textContent = message.text;
             chatMessages.appendChild(messageElement);
         });
@@ -125,7 +135,7 @@ function loadMessages(chatId) {
 async function sendMessage() {
     const text = messageInput.value.trim();
     if (text && currentChatId && user) {
-        console.log("Sending message:", text, "to chat:", currentChatId, "from user:", user.uid);
+        console.log("Enviando mensagem:", text, "para o chat:", currentChatId, "do usuário:", user.uid);
         const messagesCollection = collection(db, 'chats', currentChatId, 'messages');
         try {
             await addDoc(messagesCollection, {
@@ -134,11 +144,12 @@ async function sendMessage() {
                 timestamp: serverTimestamp()
             });
             messageInput.value = '';
+            console.log("Mensagem enviada com sucesso.");
         } catch (error) {
-            console.error("Error sending message:", error);
+            console.error("Erro ao enviar mensagem:", error);
         }
     } else {
-        console.log("Cannot send message. User, text, or chat ID is missing.", {
+        console.log("Não é possível enviar a mensagem. Usuário, texto ou ID do chat ausente.", {
             user,
             text,
             currentChatId
