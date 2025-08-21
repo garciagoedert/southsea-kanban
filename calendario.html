@@ -10,6 +10,11 @@
     <!-- FullCalendar CSS -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <style>
+        /* Custom styles for FullCalendar */
+        :root {
+            --fc-border-color: rgba(128, 128, 128, 0.3); /* Lighter, less prominent grid lines */
+        }
+
         #calendar-container {
             flex-grow: 1;
             display: flex;
@@ -19,6 +24,14 @@
             flex-grow: 1;
             min-height: 0; /* Important for flex-grow to work in a flex column */
         }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+        /* Custom scrollbar for FullCalendar's internal scroller (week/day view) */
+        .fc-scroller::-webkit-scrollbar { width: 8px; }
+        .fc-scroller::-webkit-scrollbar-track { background: #1e293b; }
+        .fc-scroller::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -33,7 +46,7 @@
             <div id="header-container"></div>
 
             <!-- Page Content -->
-            <div id="calendar-container" class="flex-grow p-6 flex flex-col">
+            <div id="calendar-container" class="flex-grow p-6 flex flex-col custom-scrollbar">
                 <div class="flex justify-between items-center mb-6 flex-shrink-0">
                     <h1 class="text-2xl font-semibold text-white">Calendário</h1>
                     <div class="flex gap-4">
@@ -53,7 +66,7 @@
                 <h2 id="modal-title" class="text-xl font-bold">Nova Tarefa</h2>
                 <button id="close-modal-btn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <form id="task-form" class="p-6 overflow-y-auto space-y-4">
+            <form id="task-form" class="p-6 overflow-y-auto space-y-4 custom-scrollbar">
                 <input type="hidden" id="task-id">
                 <div>
                     <label for="task-title" class="block text-sm font-medium text-gray-300 mb-1">Título</label>
@@ -116,7 +129,7 @@
                 <h2 id="meeting-modal-title" class="text-xl font-bold">Agendar Nova Reunião</h2>
                 <button id="close-meeting-modal-btn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <form id="meeting-form" class="p-6 overflow-y-auto space-y-4">
+            <form id="meeting-form" class="p-6 overflow-y-auto space-y-4 custom-scrollbar">
                 <input type="hidden" id="meeting-id">
                 <div>
                     <label for="meeting-title" class="block text-sm font-medium text-gray-300 mb-1">Título</label>
