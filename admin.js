@@ -1,6 +1,55 @@
 import { loadComponents, setupUIListeners } from './common-ui.js';
 import { db } from './firebase-config.js';
-import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { 
+    doc, setDoc, getDoc, addDoc, collection, getDocs, deleteDoc, updateDoc 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Course Management Functions
+async function saveCourse(courseData) {
+    try {
+        if (courseData.id) {
+            const courseRef = doc(db, 'courses', courseData.id);
+            await updateDoc(courseRef, {
+                title: courseData.title,
+                description: courseData.description
+            });
+            alert('Curso atualizado com sucesso!');
+        } else {
+            await addDoc(collection(db, 'courses'), {
+                title: courseData.title,
+                description: courseData.description
+            });
+            alert('Curso salvo com sucesso!');
+        }
+    } catch (error) {
+        console.error("Erro ao salvar curso:", error);
+        alert('Erro ao salvar curso.');
+    }
+}
+
+async function loadCourses() {
+    const courses = [];
+    try {
+        const querySnapshot = await getDocs(collection(db, 'courses'));
+        querySnapshot.forEach((doc) => {
+            courses.push({ id: doc.id, ...doc.data() });
+        });
+    } catch (error) {
+        console.error("Erro ao carregar cursos:", error);
+    }
+    return courses;
+}
+
+async function deleteCourse(courseId) {
+    try {
+        await deleteDoc(doc(db, 'courses', courseId));
+        alert('Curso excluído com sucesso!');
+    } catch (error) {
+        console.error("Erro ao excluir curso:", error);
+        alert('Erro ao excluir curso.');
+    }
+}
+
 
 async function saveWhitelabelSettings(settings) {
     try {
@@ -52,6 +101,15 @@ function setupAdminPage() {
     const headerLogoInput = document.getElementById('header-logo');
     const sidebarLogoInput = document.getElementById('sidebar-logo');
     const primaryColorInput = document.getElementById('primary-color');
+
+    // Course form elements
+    const courseForm = document.getElementById('course-form');
+    const courseTitleInput = document.getElementById('course-title');
+    const courseDescriptionInput = document.getElementById('course-description');
+    const courseIdHiddenInput = document.getElementById('course-id-hidden');
+    const cancelCourseEditBtn = document.getElementById('cancel-course-edit');
+    const courseTableBody = document.getElementById('course-table-body');
+
 
     async function populateWhitelabelForm() {
         const settings = await loadWhitelabelSettings();
@@ -159,8 +217,79 @@ function setupAdminPage() {
     userForm.addEventListener('submit', handleFormSubmit);
     whitelabelForm.addEventListener('submit', handleWhitelabelFormSubmit);
 
+    // Course Management Logic
+    async function renderCourses() {
+        courseTableBody.innerHTML = '';
+        const courses = await loadCourses();
+        courses.forEach(course => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="py-2 px-4 border-b border-gray-700">${course.title}</td>
+                <td class="py-2 px-4 border-b border-gray-700">
+                    <a href="course-editor.html?courseId=${course.id}" class="text-primary hover:text-primary-dark mr-2" title="Editar Módulos e Aulas">
+                        <i class="fas fa-cog"></i>
+                    </a>
+                    <button class="text-primary hover:text-primary-dark mr-2 edit-course-btn" data-id="${course.id}" title="Editar Título/Descrição">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="text-red-400 hover:text-red-600 delete-course-btn" data-id="${course.id}" title="Excluir Curso">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            courseTableBody.appendChild(row);
+        });
+    }
+
+    function handleCourseFormSubmit(e) {
+        e.preventDefault();
+        const courseData = {
+            id: courseIdHiddenInput.value,
+            title: courseTitleInput.value,
+            description: courseDescriptionInput.value
+        };
+        saveCourse(courseData).then(() => {
+            resetCourseForm();
+            renderCourses();
+        });
+    }
+
+    function resetCourseForm() {
+        courseForm.reset();
+        courseIdHiddenInput.value = '';
+        cancelCourseEditBtn.classList.add('hidden');
+    }
+
+    courseTableBody.addEventListener('click', async function(e) {
+        if (e.target.closest('.edit-course-btn')) {
+            const courseId = e.target.closest('.edit-course-btn').dataset.id;
+            const courses = await loadCourses();
+            const course = courses.find(c => c.id === courseId);
+            if (course) {
+                courseTitleInput.value = course.title;
+                courseDescriptionInput.value = course.description;
+                courseIdHiddenInput.value = course.id;
+                cancelCourseEditBtn.classList.remove('hidden');
+            }
+        }
+
+        if (e.target.closest('.delete-course-btn')) {
+            const courseId = e.target.closest('.delete-course-btn').dataset.id;
+            if (confirm('Tem certeza que deseja excluir este curso?')) {
+                deleteCourse(courseId).then(() => {
+                    renderCourses();
+                });
+            }
+        }
+    });
+
+    cancelCourseEditBtn.addEventListener('click', resetCourseForm);
+    courseForm.addEventListener('submit', handleCourseFormSubmit);
+
+
     renderUsers();
     populateWhitelabelForm();
+    renderCourses();
     setupUIListeners();
 }
 

@@ -15,6 +15,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Nova regra para reuniões
+    // Permite que qualquer usuário autenticado crie, leia, atualize e apague reuniões.
+    match /artifacts/{appId}/public/data/meetings/{meetingId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Regras para o chat
     match /chats/{chatId} {
       allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
@@ -26,6 +32,34 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if request.auth != null;
+    }
+
+    // --- REGRAS PARA O SISTEMA DE CURSOS ---
+
+    // As regras abaixo são temporárias para permitir o desenvolvimento.
+    // TODO: Implementar autenticação do Firebase e restringir o acesso de escrita
+    //       apenas para administradores (ex: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true).
+
+    // Permite a leitura pública das configurações de whitelabel
+    match /settings/whitelabel {
+      allow read: if true;
+      allow write: if request.auth != null; // Apenas usuários logados podem escrever (temporário)
+    }
+
+    // Permite a leitura pública de cursos, módulos e aulas
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if request.auth != null; // Apenas usuários logados podem escrever (temporário)
+
+      match /modules/{moduleId} {
+        allow read: if true;
+        allow write: if request.auth != null; // Apenas usuários logados podem escrever (temporário)
+
+        match /lessons/{lessonId} {
+          allow read: if true;
+          allow write: if request.auth != null; // Apenas usuários logados podem escrever (temporário)
+        }
+      }
     }
   }
 }

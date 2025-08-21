@@ -10,13 +10,14 @@ export function initializeAppWithFirebase(firebaseConfig) {
     const auth = getAuth(app);
     const appId = firebaseConfig.appId || 'default-app';
     const tasksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+    const meetingsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'meetings');
     const prospectsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'prospects');
 
     document.addEventListener('DOMContentLoaded', () => {
         onAuthStateChanged(auth, (user) => {
             if (user && sessionStorage.getItem('isLoggedIn') === 'true') {
                 loadComponents(() => {
-                    initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef);
+                    initializeCalendarPage(tasksCollectionRef, meetingsCollectionRef, prospectsCollectionRef);
                     setupUIListeners();
                 });
             } else {
@@ -26,24 +27,38 @@ export function initializeAppWithFirebase(firebaseConfig) {
     });
 }
 
-function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
+function initializeCalendarPage(tasksCollectionRef, meetingsCollectionRef, prospectsCollectionRef) {
     const systemUsers = getAllUsers();
     let tasks = [];
+    let meetings = [];
     let prospects = [];
     let calendar;
 
-    // Elementos do DOM para o modal (reutilizados)
-    const modal = document.getElementById('task-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-    const cancelBtn = document.getElementById('cancel-btn');
+    // --- Elementos do DOM para o Modal de Tarefas ---
+    const taskModal = document.getElementById('task-modal');
+    const closeTaskModalBtn = document.getElementById('close-modal-btn');
+    const cancelTaskBtn = document.getElementById('cancel-btn');
     const deleteTaskBtn = document.getElementById('delete-task-btn');
     const taskForm = document.getElementById('task-form');
-    const modalTitle = document.getElementById('modal-title');
+    const taskModalTitle = document.getElementById('modal-title');
     const taskAssigneeSelect = document.getElementById('task-assignee');
     const taskLinkedCardSearch = document.getElementById('task-linked-card-search');
     const taskLinkedCardId = document.getElementById('task-linked-card-id');
     const taskLinkedCardResults = document.getElementById('task-linked-card-results');
     const createTaskBtnCalendar = document.getElementById('create-task-btn-calendar');
+    
+    // --- Elementos do DOM para o Modal de Reuniões ---
+    const meetingModal = document.getElementById('meeting-modal');
+    const closeMeetingModalBtn = document.getElementById('close-meeting-modal-btn');
+    const cancelMeetingBtn = document.getElementById('cancel-meeting-btn');
+    const deleteMeetingBtn = document.getElementById('delete-meeting-btn');
+    const meetingForm = document.getElementById('meeting-form');
+    const meetingModalTitle = document.getElementById('meeting-modal-title');
+    const meetingLinkedCardSearch = document.getElementById('meeting-linked-card-search');
+    const meetingLinkedCardId = document.getElementById('meeting-linked-card-id');
+    const meetingLinkedCardResults = document.getElementById('meeting-linked-card-results');
+    const createMeetingBtnCalendar = document.getElementById('create-meeting-btn-calendar');
+
     const addProspectBtnHeader = document.getElementById('addProspectBtnHeader');
 
     // Esconde o botão de "Novo Prospect" do header geral
@@ -51,19 +66,34 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
         addProspectBtnHeader.style.display = 'none';
     }
 
-    // Funções do Modal
-    const openModal = () => {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+    // --- Funções do Modal de Tarefas ---
+    const openTaskModal = () => {
+        taskModal.classList.remove('hidden');
+        taskModal.classList.add('flex');
     };
 
-    const closeModal = () => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+    const closeTaskModal = () => {
+        taskModal.classList.add('hidden');
+        taskModal.classList.remove('flex');
         taskForm.reset();
         document.getElementById('task-id').value = '';
-        modalTitle.textContent = 'Nova Tarefa';
+        taskModalTitle.textContent = 'Nova Tarefa';
         deleteTaskBtn.classList.add('hidden');
+    };
+
+    // --- Funções do Modal de Reuniões ---
+    const openMeetingModal = () => {
+        meetingModal.classList.remove('hidden');
+        meetingModal.classList.add('flex');
+    };
+
+    const closeMeetingModal = () => {
+        meetingModal.classList.add('hidden');
+        meetingModal.classList.remove('flex');
+        meetingForm.reset();
+        document.getElementById('meeting-id').value = '';
+        meetingModalTitle.textContent = 'Agendar Nova Reunião';
+        deleteMeetingBtn.classList.add('hidden');
     };
 
     const populateUsers = () => {
@@ -120,9 +150,9 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
         const linkedCard = prospects.find(p => p.id === task.linked_card_id);
         taskLinkedCardSearch.value = linkedCard ? linkedCard.empresa : '';
         
-        modalTitle.textContent = 'Editar Tarefa';
+        taskModalTitle.textContent = 'Editar Tarefa';
         deleteTaskBtn.classList.remove('hidden');
-        openModal();
+        openTaskModal();
     };
 
     const handleFormSubmit = async (event) => {
@@ -149,7 +179,7 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
                 taskData.createdAt = serverTimestamp();
                 await addDoc(tasksCollectionRef, taskData);
             }
-            closeModal();
+            closeTaskModal();
         } catch (error) {
             console.error("Erro ao salvar tarefa:", error);
             alert("Não foi possível salvar a tarefa.");
@@ -164,10 +194,74 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
             try {
                 const taskRef = doc(tasksCollectionRef, taskId);
                 await deleteDoc(taskRef);
-                closeModal();
+                closeTaskModal();
             } catch (error) {
                 console.error("Erro ao apagar tarefa:", error);
                 alert("Não foi possível apagar a tarefa.");
+            }
+        }
+    };
+
+    // --- Funções de CRUD para Reuniões ---
+    const openModalForMeetingEdit = (meeting) => {
+        document.getElementById('meeting-id').value = meeting.id;
+        document.getElementById('meeting-title').value = meeting.title;
+        document.getElementById('meeting-date').value = meeting.date ? new Date(meeting.date).toISOString().slice(0, 16) : '';
+        document.getElementById('meeting-meet-link').value = meeting.meetLink || '';
+        document.getElementById('meeting-guests').value = (meeting.guests || []).join(', ');
+        document.getElementById('meeting-description').value = meeting.description || '';
+        document.getElementById('meeting-status').value = meeting.status || 'scheduled';
+        meetingLinkedCardId.value = meeting.linked_card_id || '';
+        const linkedCard = prospects.find(p => p.id === meeting.linked_card_id);
+        meetingLinkedCardSearch.value = linkedCard ? linkedCard.empresa : '';
+        
+        meetingModalTitle.textContent = 'Editar Reunião';
+        deleteMeetingBtn.classList.remove('hidden');
+        openMeetingModal();
+    };
+
+    const handleMeetingFormSubmit = async (event) => {
+        event.preventDefault();
+        const meetingId = document.getElementById('meeting-id').value;
+        const guestsValue = document.getElementById('meeting-guests').value;
+        const meetingData = {
+            title: document.getElementById('meeting-title').value,
+            date: document.getElementById('meeting-date').value,
+            meetLink: document.getElementById('meeting-meet-link').value,
+            guests: guestsValue.split(',').map(email => email.trim()).filter(email => email),
+            description: document.getElementById('meeting-description').value,
+            status: document.getElementById('meeting-status').value,
+            linked_card_id: meetingLinkedCardId.value,
+            updatedAt: serverTimestamp()
+        };
+
+        try {
+            if (meetingId) {
+                const meetingRef = doc(meetingsCollectionRef, meetingId);
+                await updateDoc(meetingRef, meetingData);
+            } else {
+                meetingData.createdAt = serverTimestamp();
+                await addDoc(meetingsCollectionRef, meetingData);
+            }
+            closeMeetingModal();
+        } catch (error) {
+            console.error("Erro ao salvar reunião:", error);
+            alert("Não foi possível salvar a reunião.");
+        }
+    };
+
+    const handleDeleteMeeting = async () => {
+        const meetingId = document.getElementById('meeting-id').value;
+        if (!meetingId) return;
+
+        if (confirm('Você tem certeza que deseja apagar esta reunião?')) {
+            try {
+                const meetingRef = doc(meetingsCollectionRef, meetingId);
+                await deleteDoc(meetingRef);
+                closeMeetingModal();
+            } catch (error) {
+                console.error("Erro ao apagar reunião:", error);
+                alert("Não foi possível apagar a reunião.");
             }
         }
     };
@@ -183,10 +277,15 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
         },
         events: [], // Inicia vazio, será populado pelo Firebase
         eventClick: function(info) {
-            const taskId = info.event.id;
-            const task = tasks.find(t => t.id === taskId);
-            if (task) {
-                openModalForEdit(task);
+            const eventId = info.event.id;
+            const eventType = info.event.extendedProps.type;
+
+            if (eventType === 'task') {
+                const task = tasks.find(t => t.id === eventId);
+                if (task) openModalForEdit(task);
+            } else if (eventType === 'meeting') {
+                const meeting = meetings.find(m => m.id === eventId);
+                if (meeting) openModalForMeetingEdit(meeting);
             }
         },
         locale: 'pt-br',
@@ -204,15 +303,16 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
     calendar.render();
 
     // Listeners do Modal e Botão
+    // --- Listeners do Modal de Tarefas e Botão ---
     createTaskBtnCalendar.addEventListener('click', () => {
         taskForm.reset();
         document.getElementById('task-id').value = '';
-        modalTitle.textContent = 'Nova Tarefa';
+        taskModalTitle.textContent = 'Nova Tarefa';
         deleteTaskBtn.classList.add('hidden');
-        openModal();
+        openTaskModal();
     });
-    closeModalBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
+    closeTaskModalBtn.addEventListener('click', closeTaskModal);
+    cancelTaskBtn.addEventListener('click', closeTaskModal);
     deleteTaskBtn.addEventListener('click', handleDeleteTask);
     taskForm.addEventListener('submit', handleFormSubmit);
     taskLinkedCardSearch.addEventListener('keyup', () => {
@@ -225,22 +325,88 @@ function initializeCalendarPage(tasksCollectionRef, prospectsCollectionRef) {
         renderCardSearchResults(results);
     });
 
+    // --- Listeners do Modal de Reuniões e Botão ---
+    createMeetingBtnCalendar.addEventListener('click', () => {
+        meetingForm.reset();
+        document.getElementById('meeting-id').value = '';
+        meetingModalTitle.textContent = 'Agendar Nova Reunião';
+        deleteMeetingBtn.classList.add('hidden');
+        openMeetingModal();
+    });
+    closeMeetingModalBtn.addEventListener('click', closeMeetingModal);
+    cancelMeetingBtn.addEventListener('click', closeMeetingModal);
+    deleteMeetingBtn.addEventListener('click', handleDeleteMeeting);
+    meetingForm.addEventListener('submit', handleMeetingFormSubmit);
+    meetingLinkedCardSearch.addEventListener('keyup', () => {
+        const searchTerm = meetingLinkedCardSearch.value.toLowerCase();
+        if (searchTerm.length < 2) {
+            meetingLinkedCardResults.classList.add('hidden');
+            return;
+        }
+        // Reutiliza a mesma função de renderização de resultados
+        const results = prospects.filter(p => p.empresa.toLowerCase().includes(searchTerm));
+        renderCardSearchResults(results); // CUIDADO: Isso vai popular o div de resultados da tarefa. Precisamos de um específico.
+        // TODO: Criar uma função renderMeetingCardSearchResults ou generalizar a existente.
+        // Por enquanto, para simplificar, vamos usar a mesma.
+        const meetingResultsContainer = document.getElementById('meeting-linked-card-results');
+        meetingResultsContainer.innerHTML = '';
+         results.forEach(prospect => {
+            const div = document.createElement('div');
+            div.className = 'p-2 hover:bg-gray-500 cursor-pointer';
+            div.textContent = `${prospect.empresa} (${prospect.status})`;
+            div.dataset.id = prospect.id;
+            div.dataset.name = prospect.empresa;
+            div.addEventListener('click', () => {
+                meetingLinkedCardSearch.value = prospect.empresa;
+                meetingLinkedCardId.value = prospect.id;
+                meetingResultsContainer.classList.add('hidden');
+            });
+            meetingResultsContainer.appendChild(div);
+        });
+        meetingResultsContainer.classList.remove('hidden');
+    });
+
+
     // Inicialização
     populateUsers();
     fetchProspects();
 
-    // Listener do Firebase
-    onSnapshot(tasksCollectionRef, (snapshot) => {
-        tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const calendarEvents = tasks.filter(task => task.due_date).map(task => ({
+    const updateCalendarEvents = () => {
+        const taskEvents = tasks.filter(task => task.due_date).map(task => ({
             id: task.id,
             title: task.title,
             start: task.due_date,
-            allDay: false // Assumindo que due_date inclui a hora
+            allDay: false,
+            color: '#3788d8', // Azul para tarefas
+            extendedProps: { type: 'task' }
         }));
+
+        const meetingEvents = meetings.filter(m => m.date).map(meeting => ({
+            id: meeting.id,
+            title: `Reunião: ${meeting.title}`,
+            start: meeting.date,
+            allDay: false,
+            color: meeting.status === 'canceled' ? '#a9a9a9' : '#10b981', // Cinza para cancelada, Verde para outras
+            extendedProps: { type: 'meeting' }
+        }));
+
+        const allEvents = [...taskEvents, ...meetingEvents];
         calendar.getEventSources().forEach(source => source.remove());
-        calendar.addEventSource(calendarEvents);
+        calendar.addEventSource(allEvents);
+    };
+
+    // Listeners do Firebase
+    onSnapshot(tasksCollectionRef, (snapshot) => {
+        tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateCalendarEvents();
     }, (error) => {
         console.error("Erro ao buscar tarefas:", error);
+    });
+
+    onSnapshot(meetingsCollectionRef, (snapshot) => {
+        meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateCalendarEvents();
+    }, (error) => {
+        console.error("Erro ao buscar reuniões:", error);
     });
 }
