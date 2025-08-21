@@ -94,23 +94,14 @@ function renderClosedClients() {
 
 function createClientCard(client) {
     const card = document.createElement('div');
-    card.className = `bg-gray-800 p-4 rounded-lg shadow-md border-l-4 flex flex-col`;
+    card.className = `bg-gray-800 p-4 rounded-lg shadow-md border-l-4 flex flex-col cursor-pointer hover:bg-gray-700/50 transition-colors duration-200`;
     card.style.borderLeftColor = getPriorityColor(client.prioridade);
+    card.dataset.clientId = client.id;
 
     const sectorColor = getSectorColor(client.setor);
 
     card.innerHTML = `
-        <div class="flex justify-between items-start mb-2">
-            <h4 class="font-bold text-lg flex-grow pr-2">${client.empresa}</h4>
-            <div class="relative">
-                <button data-action="toggle-menu" class="text-gray-500 hover:text-white text-xs"><i class="fas fa-ellipsis-v"></i></button>
-                <div data-menu class="absolute right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg z-10 hidden">
-                    <a href="#" data-action="edit" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600">Editar</a>
-                    <a href="#" data-action="archive" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600">Arquivar</a>
-                    <a href="#" data-action="delete" class="block px-4 py-2 text-sm text-red-400 hover:bg-gray-600">Excluir</a>
-                </div>
-            </div>
-        </div>
+        <h4 class="font-bold text-lg mb-2">${client.empresa}</h4>
         <div class="flex items-center gap-2 mb-3">
             <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sectorColor.bg} ${sectorColor.text}">${client.setor}</span>
             <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">P${client.prioridade}</span>
@@ -118,39 +109,13 @@ function createClientCard(client) {
         <p class="text-sm text-green-400 font-semibold mb-2">R$ ${client.ticketEstimado?.toLocaleString('pt-BR') || 'N/A'}</p>
         ${client.origemLead ? `<p class="text-xs text-gray-400 mt-2 mb-2"><i class="fas fa-sign-in-alt mr-1"></i> ${client.origemLead}</p>` : ''}
         <div class="flex-grow"></div>
-        <p class="text-xs text-gray-400 mt-auto">Concluído em: ${client.updatedAt ? new Date(client.updatedAt.seconds * 1000).toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
+        <p class="text-xs text-gray-400 mt-2">Concluído em: ${client.updatedAt ? new Date(client.updatedAt.seconds * 1000).toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
     `;
 
-    card.addEventListener('click', (e) => {
-        const actionTarget = e.target.closest('[data-action]');
-        if (!actionTarget) return;
-
-        e.stopPropagation();
-        const action = actionTarget.dataset.action;
-        const clientId = client.id;
-
-        if (action === 'toggle-menu') {
-            const menu = card.querySelector('[data-menu]');
-            menu.classList.toggle('hidden');
-        } else if (action === 'delete') {
-            const clientToDelete = allClosedClients.find(c => c.id === clientId);
-            if (clientToDelete) {
-                showConfirmModal(`Deseja realmente excluir "${clientToDelete.empresa}"?`, () => {
-                    deleteClient(clientId);
-                });
-            }
-        } else if (action === 'edit') {
-            const clientToEdit = allClosedClients.find(c => c.id === clientId);
-            if (clientToEdit) {
-                openEditModal(clientToEdit);
-            }
-        } else if (action === 'archive') {
-            const clientToArchive = allClosedClients.find(c => c.id === clientId);
-            if (clientToArchive) {
-                showConfirmModal(`Deseja arquivar "${clientToArchive.empresa}"?`, () => {
-                    archiveClient(clientId);
-                });
-            }
+    card.addEventListener('click', () => {
+        const clientToEdit = allClosedClients.find(c => c.id === client.id);
+        if (clientToEdit) {
+            openEditModal(clientToEdit);
         }
     });
     
@@ -188,7 +153,6 @@ function openEditModal(client) {
     document.getElementById('editClientPrioridade').value = client.prioridade || '';
     document.getElementById('editClientTicket').value = client.ticketEstimado || '';
     document.getElementById('editOrigemLead').value = client.origemLead || '';
-    document.getElementById('editResponsavel').value = client.responsavel || '';
     document.getElementById('editClientTelefone').value = client.telefone || '';
     document.getElementById('editClientEmail').value = client.email || '';
     document.getElementById('editClientCpf').value = client.cpf || '';
@@ -201,23 +165,22 @@ function openEditModal(client) {
     renderContactLog(client.contactLog);
 
     const fields = editClientForm.querySelectorAll('input, select, textarea');
-    const editBtn = document.getElementById('editBtn');
+    fields.forEach(field => {
+        if (field.id !== 'editClientId') field.disabled = false;
+    });
+
     const saveBtn = document.getElementById('saveBtn');
     const cancelEditFormBtn = document.getElementById('cancelEditFormBtn');
     const addContactLogBtn = document.getElementById('addContactLogBtn');
     const newContactLogTextarea = document.getElementById('newContactLog');
     const contactLogSection = newContactLogTextarea.parentElement;
+    const archiveBtn = document.getElementById('archiveBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
 
-    const setFormEditable = (isEditable) => {
-        fields.forEach(field => {
-            if (field.id !== 'editClientId') field.disabled = !isEditable;
-        });
-        contactLogSection.style.display = isEditable ? 'flex' : 'none';
-        editBtn.classList.toggle('hidden', isEditable);
-        saveBtn.classList.toggle('hidden', !isEditable);
-        cancelEditFormBtn.classList.toggle('hidden', !isEditable);
-    };
-
+    contactLogSection.style.display = 'flex';
+    saveBtn.classList.remove('hidden');
+    cancelEditFormBtn.classList.remove('hidden');
+    
     const newAddContactBtn = addContactLogBtn.cloneNode(true);
     addContactLogBtn.parentNode.replaceChild(newAddContactBtn, addContactLogBtn);
     newAddContactBtn.addEventListener('click', async () => {
@@ -240,9 +203,21 @@ function openEditModal(client) {
         }
     });
 
-    setFormEditable(false);
-    editBtn.onclick = () => setFormEditable(true);
-    cancelEditFormBtn.onclick = () => openEditModal(client);
+    archiveBtn.onclick = () => {
+        showConfirmModal(`Deseja arquivar "${client.empresa}"?`, () => {
+            archiveClient(client.id);
+            closeEditModal();
+        });
+    };
+
+    deleteBtn.onclick = () => {
+        showConfirmModal(`Deseja realmente excluir "${client.empresa}"?`, () => {
+            deleteClient(client.id);
+            closeEditModal();
+        });
+    };
+
+    cancelEditFormBtn.onclick = () => closeEditModal();
 
     editClientModal.style.display = 'flex';
 }
@@ -260,7 +235,6 @@ async function handleUpdateClient(e) {
         prioridade: parseInt(document.getElementById('editClientPrioridade').value, 10),
         ticketEstimado: parseFloat(document.getElementById('editClientTicket').value) || 0,
         origemLead: document.getElementById('editOrigemLead').value,
-        responsavel: document.getElementById('editResponsavel').value,
         telefone: document.getElementById('editClientTelefone').value,
         email: document.getElementById('editClientEmail').value,
         cpf: document.getElementById('editClientCpf').value,

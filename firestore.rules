@@ -3,16 +3,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Regra existente para prospects
     match /artifacts/{appId}/public/data/prospects/{prospectId} {
-      // Permite que qualquer pessoa crie um novo lead (formulário público)
-      allow create: if true;
-      // Apenas usuários autenticados podem ler, atualizar ou deletar
-      allow read, update, delete: if request.auth != null;
+      // Permite que qualquer pessoa crie um novo lead (formulário público) e leia a lista de prospects
+      allow create, read: if true;
+      // Apenas usuários autenticados podem atualizar ou deletar
+      allow update, delete: if request.auth != null;
     }
 
     // Nova regra para tarefas
-    // Permite que qualquer usuário autenticado crie, leia, atualize e apague tarefas.
     match /artifacts/{appId}/public/data/tasks/{taskId} {
-      allow read, write: if request.auth != null;
+      // Permite que qualquer pessoa crie uma nova tarefa (demanda)
+      allow create: if true;
+      // Apenas usuários autenticados podem ler, atualizar e apagar tarefas.
+      allow read, update, delete: if request.auth != null;
     }
 
     // Nova regra para reuniões

@@ -55,6 +55,24 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     const taskLinkedCardResults = document.getElementById('task-linked-card-results');
 
     // Funções
+    const autoPrioritizeOverdueTasks = async (tasksToUpdate) => {
+        const now = new Date();
+        const priorityOrder = ['low', 'normal', 'high', 'urgent'];
+
+        for (const task of tasksToUpdate) {
+            const isOverdue = task.due_date && new Date(task.due_date) < now && task.status !== 'done';
+            
+            if (isOverdue) {
+                const currentPriorityIndex = priorityOrder.indexOf(task.priority);
+                if (currentPriorityIndex < priorityOrder.length - 1) {
+                    const newPriority = priorityOrder[currentPriorityIndex + 1];
+                    const taskRef = doc(tasksCollectionRef, task.id);
+                    await updateDoc(taskRef, { priority: newPriority });
+                }
+            }
+        }
+    };
+
     const fetchProspects = async () => {
         try {
             const snapshot = await getDocs(prospectsCollectionRef);
@@ -162,7 +180,8 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
         }
         tasksToRender.forEach(task => {
             const row = document.createElement('tr');
-            row.className = 'bg-gray-800 border-b border-gray-700 hover:bg-gray-700/60 cursor-pointer';
+            const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+            row.className = `bg-gray-800 border-b border-gray-700 hover:bg-gray-700/60 cursor-pointer ${isOverdue ? 'bg-red-900/30' : ''}`;
             row.addEventListener('click', () => openModalForEdit(task));
 
             const assignee = systemUsers.find(u => u.email === task.assignee_email);
@@ -178,7 +197,7 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
                 <td class="px-6 py-4 font-medium text-white">${task.title}</td>
                 <td class="px-6 py-4">${clientLinkHTML}</td>
                 <td class="px-6 py-4">${assignee?.name || 'N/A'}</td>
-                <td class="px-6 py-4">${dueDate}</td>
+                <td class="px-6 py-4 ${isOverdue ? 'text-red-400 font-semibold' : ''}">${dueDate}</td>
                 <td class="px-6 py-4 ${getPriorityClass(task.priority)}">${priorityText}</td>
                 <td class="px-6 py-4">${getStatusBadge(task.status)}</td>
             `;
@@ -322,6 +341,9 @@ function initializeTasksPage(tasksCollectionRef, prospectsCollectionRef) {
     // Listener do Firebase para atualizar as tarefas em tempo real
     onSnapshot(tasksCollectionRef, (snapshot) => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        autoPrioritizeOverdueTasks(tasks);
+
         // Ordenar tarefas: pendentes e em progresso primeiro, depois por data de criação
         tasks.sort((a, b) => {
             const statusOrder = { 'pending': 1, 'in_progress': 2, 'done': 3 };
