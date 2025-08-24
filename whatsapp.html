@@ -57,12 +57,12 @@
                 </div>
 
                 <!-- Filters -->
-                <div class="bg-gray-800 p-4 rounded-lg mb-6 flex flex-col xl:flex-row items-center gap-4 shadow-md">
+                <div class="bg-gray-800 p-4 rounded-lg mb-6 flex flex-col lg:flex-row items-center gap-4 shadow-md">
                      <div class="relative flex-grow w-full">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         <input type="text" id="searchInput" placeholder="Buscar por empresa ou setor..." class="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="flex flex-col sm:flex-row w-full xl:w-auto gap-4">
+                    <div class="flex flex-col sm:flex-row w-full lg:w-auto gap-2 flex-shrink-0">
                         <select id="priorityFilter" class="w-full sm:w-auto bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filter by priority">
                             <option value="">Todas as Prioridades</option>
                             <option value="5">Máxima (5)</option>
@@ -74,7 +74,8 @@
                         <select id="tagFilter" class="w-full sm:w-auto bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filter by tag">
                             <option value="">Todas as Tags</option>
                         </select>
-                        <button id="resetFiltersBtn" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex-shrink-0">Limpar</button>
+                        <button id="quickMessagesBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 font-semibold py-2 px-3 rounded-lg transition-all duration-200 flex-shrink-0">Mensagens Rápidas</button>
+                        <button id="resetFiltersBtn" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 font-semibold py-2 px-3 rounded-lg transition-all duration-200 flex-shrink-0">Limpar</button>
                     </div>
                 </div>
 
@@ -237,6 +238,63 @@
         </div>
     </div>
 
+    <!-- Quick Messages Modal -->
+    <div id="quickMessagesModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold">Mensagens Rápidas</h2>
+                <button id="closeQuickMessagesModalBtn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <!-- Add/Edit Form (initially hidden) -->
+                <form id="messageForm" class="hidden mb-6 bg-gray-900/50 p-4 rounded-lg">
+                    <input type="hidden" id="messageId">
+                    <h3 id="messageFormTitle" class="text-lg font-semibold mb-3">Adicionar Nova Mensagem</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="messageTitle" class="block text-sm font-medium text-gray-300 mb-1">Título</label>
+                            <input type="text" id="messageTitle" placeholder="Ex: Apresentação Inicial" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="messageType" class="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
+                            <select id="messageType" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <option value="Início de Conversa">Início de Conversa</option>
+                                <option value="Follow-up">Follow-up</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group mt-4">
+                        <label for="messageContent" class="block text-sm font-medium text-gray-300 mb-1">Conteúdo da Mensagem</label>
+                        <textarea id="messageContent" rows="5" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar" required></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button type="button" id="cancelMessageFormBtn" class="bg-gray-600 hover:bg-gray-500 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Salvar</button>
+                    </div>
+                </form>
+
+                <!-- Message List -->
+                <div class="flex justify-between items-center mb-4">
+                    <!-- Tabs -->
+                    <div class="flex border-b border-gray-700">
+                        <button data-tab="Início de Conversa" class="tab-btn text-white bg-gray-700 py-2 px-4 rounded-t-lg">Início de Conversa</button>
+                        <button data-tab="Follow-up" class="tab-btn text-gray-400 py-2 px-4">Follow-up</button>
+                    </div>
+                    <button id="addNewMessageBtn" class="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-plus"></i>
+                        <span>Nova Mensagem</span>
+                    </button>
+                </div>
+                <div id="messagesListContainer" class="space-y-3">
+                    <!-- Messages will be injected here by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script type="module">
         // Firebase Imports
@@ -269,13 +327,25 @@
         const confirmModal = document.getElementById('confirmModal');
         const kanbanContainer = document.getElementById('kanban-container');
         const importModal = document.getElementById('importModal');
+        const quickMessagesModal = document.getElementById('quickMessagesModal');
         
+        // --- QUICK MESSAGES UI ELEMENTS ---
+        const messageForm = document.getElementById('messageForm');
+        const messagesListContainer = document.getElementById('messagesListContainer');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+
+        // --- QUICK MESSAGES STATE ---
+        let quickMessages = [];
+        let quickMessagesListener = null;
+        let activeMessageType = 'Início de Conversa'; // Default tab
+
         // --- AUTHENTICATION ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (sessionStorage.getItem('isLoggedIn') === 'true') {
                     document.getElementById('kanban-container').classList.remove('hidden');
                     setupProspectsListener();
+                    setupQuickMessagesListener(); // Start listening for quick messages
                 } else {
                     window.location.href = 'login.html';
                 }
@@ -301,6 +371,93 @@
                 console.error("Error fetching prospects:", error);
                 kanbanBoard.innerHTML = `<p class="text-red-500 text-center col-span-full">Não foi possível carregar os prospects. Verifique sua conexão e as regras do Firestore.</p>`;
             });
+        }
+
+        function setupQuickMessagesListener() {
+            if (quickMessagesListener) quickMessagesListener(); // Unsubscribe from previous listener
+
+            const messagesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'mensagens_rapidas');
+            quickMessagesListener = onSnapshot(messagesCollection, (snapshot) => {
+                quickMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderQuickMessages();
+            }, (error) => {
+                console.error("Error fetching quick messages:", error);
+                messagesListContainer.innerHTML = `<p class="text-red-500">Não foi possível carregar as mensagens.</p>`;
+            });
+        }
+
+        // --- QUICK MESSAGES RENDERING & LOGIC ---
+        function renderQuickMessages() {
+            messagesListContainer.innerHTML = '';
+            const filteredMessages = quickMessages.filter(msg => msg.type === activeMessageType);
+
+            if (filteredMessages.length === 0) {
+                messagesListContainer.innerHTML = `<div class="text-center text-gray-500 p-4">Nenhuma mensagem encontrada para esta categoria.</div>`;
+                return;
+            }
+
+            filteredMessages.forEach(msg => {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'bg-gray-900 p-3 rounded-lg flex justify-between items-start gap-4';
+                messageEl.innerHTML = `
+                    <div class="flex-1">
+                        <h4 class="font-bold text-white">${msg.title}</h4>
+                        <p class="text-gray-400 text-sm mt-1 whitespace-pre-wrap">${msg.content}</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                        <button class="copy-btn bg-sky-600 hover:bg-sky-700 text-white font-semibold py-1 px-3 rounded-lg text-xs" data-content="${escape(msg.content)}">Copiar</button>
+                        <button class="edit-btn bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-lg text-xs" data-id="${msg.id}">Editar</button>
+                        <button class="delete-btn bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-lg text-xs" data-id="${msg.id}">Excluir</button>
+                    </div>
+                `;
+                messagesListContainer.appendChild(messageEl);
+            });
+        }
+
+        function handleMessageFormSubmit(e) {
+            alert("Tentando salvar a mensagem..."); // Alerta de depuração
+            e.preventDefault();
+            const id = document.getElementById('messageId').value;
+            const title = document.getElementById('messageTitle').value;
+            const type = document.getElementById('messageType').value;
+            const content = document.getElementById('messageContent').value;
+
+            if (!title || !content) {
+                alert('Título e Conteúdo são obrigatórios.');
+                return;
+            }
+
+            const data = { title, type, content, updatedAt: serverTimestamp() };
+            const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'mensagens_rapidas');
+
+            if (id) { // Update
+                updateDoc(doc(collectionRef, id), data).then(() => {
+                    messageForm.classList.add('hidden');
+                    messageForm.reset();
+                }).catch(err => console.error("Error updating message:", err));
+            } else { // Create
+                data.createdAt = serverTimestamp();
+                addDoc(collectionRef, data).then(() => {
+                    messageForm.classList.add('hidden');
+                    messageForm.reset();
+                }).catch(err => console.error("Error adding message:", err));
+            }
+        }
+
+        async function deleteQuickMessage(id) {
+            try {
+                const msgRef = doc(db, 'artifacts', appId, 'public', 'data', 'mensagens_rapidas', id);
+                await deleteDoc(msgRef);
+            } catch (error) {
+                console.error("Error deleting message:", error);
+            }
+        }
+
+        function openQuickMessagesModal() { quickMessagesModal.style.display = 'flex'; }
+        function closeQuickMessagesModal() { 
+            quickMessagesModal.style.display = 'none';
+            messageForm.classList.add('hidden');
+            messageForm.reset();
         }
 
         // --- RENDERING ---
@@ -946,13 +1103,76 @@
                 setupUIListeners({
                     openFormModal,
                     exportData,
+                    openFormModal,
+                    exportData,
                     openImportModal,
                     closeFormModal,
                     handleFormSubmit,
                     closeImportModal,
                     handleImport,
-                    applyFilters
+                    applyFilters,
+                    openQuickMessagesModal // Add new function to listeners
                 });
+
+                // --- QUICK MESSAGES EVENT LISTENERS ---
+                document.getElementById('closeQuickMessagesModalBtn').addEventListener('click', closeQuickMessagesModal);
+                document.getElementById('addNewMessageBtn').addEventListener('click', () => {
+                    messageForm.reset();
+                    document.getElementById('messageId').value = '';
+                    document.getElementById('messageFormTitle').textContent = 'Adicionar Nova Mensagem';
+                    document.getElementById('messageType').value = activeMessageType;
+                    messageForm.classList.remove('hidden');
+                });
+                document.getElementById('cancelMessageFormBtn').addEventListener('click', () => {
+                    messageForm.classList.add('hidden');
+                    messageForm.reset();
+                });
+
+                messageForm.addEventListener('submit', handleMessageFormSubmit);
+
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        activeMessageType = button.dataset.tab;
+                        tabButtons.forEach(btn => {
+                            btn.classList.remove('text-white', 'bg-gray-700');
+                            btn.classList.add('text-gray-400');
+                        });
+                        button.classList.add('text-white', 'bg-gray-700');
+                        button.classList.remove('text-gray-400');
+                        renderQuickMessages();
+                    });
+                });
+
+                messagesListContainer.addEventListener('click', (e) => {
+                    const target = e.target;
+                    if (target.classList.contains('copy-btn')) {
+                        const content = unescape(target.dataset.content);
+                        navigator.clipboard.writeText(content).then(() => {
+                            target.textContent = 'Copiado!';
+                            setTimeout(() => { target.textContent = 'Copiar'; }, 2000);
+                        });
+                    } else if (target.classList.contains('edit-btn')) {
+                        const id = target.dataset.id;
+                        const msg = quickMessages.find(m => m.id === id);
+                        if (msg) {
+                            document.getElementById('messageId').value = msg.id;
+                            document.getElementById('messageTitle').value = msg.title;
+                            document.getElementById('messageType').value = msg.type;
+                            document.getElementById('messageContent').value = msg.content;
+                            document.getElementById('messageFormTitle').textContent = 'Editar Mensagem';
+                            messageForm.classList.remove('hidden');
+                        }
+                    } else if (target.classList.contains('delete-btn')) {
+                        const id = target.dataset.id;
+                        const msg = quickMessages.find(m => m.id === id);
+                        if (msg) {
+                            showConfirmModal(`Deseja realmente excluir a mensagem "${msg.title}"?`, () => {
+                                deleteQuickMessage(id);
+                            });
+                        }
+                    }
+                });
+
 
                 const urlParams = new URLSearchParams(window.location.search);
                 const cardIdToOpen = urlParams.get('cardId');

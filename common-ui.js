@@ -7,7 +7,8 @@ function setupUIListeners(handlers = {}) {
         handleFormSubmit,
         closeImportModal,
         handleImport,
-        applyFilters
+        applyFilters,
+        openQuickMessagesModal
     } = handlers;
 
     // Sidebar toggle
@@ -43,6 +44,7 @@ function setupUIListeners(handlers = {}) {
     if (openFormModal) document.getElementById('addProspectBtnHeader')?.addEventListener('click', () => openFormModal());
     if (exportData) document.getElementById('exportBtnSidebar')?.addEventListener('click', exportData);
     if (openImportModal) document.getElementById('importBtnSidebar')?.addEventListener('click', openImportModal);
+    if (openQuickMessagesModal) document.getElementById('quickMessagesBtn')?.addEventListener('click', openQuickMessagesModal);
 
     // Form and Modal controls (only if they exist on the page)
     if (closeFormModal) {
