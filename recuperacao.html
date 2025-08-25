@@ -31,7 +31,7 @@
                 </button>
                 <div class="flex-1 flex gap-2">
                     <input type="text" id="specificSearchInput" placeholder="Nome da Empresa do Card Perdido" class="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="specificSearchBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
+                    <button id="specificSearchBtn" title="Buscar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
@@ -110,10 +110,37 @@
                     return;
                 }
 
+                const prospectingStatuses = ['Pendente', 'Contactado', 'Reunião', 'Proposta', 'Fechado'];
+                const productionStatuses = ['Produção // V1', 'Aprovação', 'Produção // V2', 'Finalização', 'Entrega'];
+
                 snapshot.forEach(doc => {
                     const card = { id: doc.id, ...doc.data() };
-                    // Para a busca específica, não aplicamos regras, apenas mostramos os dados.
-                    lostCards.push({ ...card, fix: 'Analisar dados e corrigir manualmente se necessário.' });
+                    let foundIssue = false;
+
+                    if (card.pagina === 'Produção' && prospectingStatuses.includes(card.status)) {
+                        lostCards.push({ ...card, fix: 'Atualizar status para "Produção // V1"' });
+                        foundIssue = true;
+                    }
+                    if ((card.pagina === 'Prospecção' || card.pagina === 'WhatsApp') && card.status && card.status.startsWith('Produção')) {
+                        lostCards.push({ ...card, fix: 'Atualizar página para "Produção"' });
+                        foundIssue = true;
+                    }
+                    if (card.status === 'Concluído' && card.pagina !== 'Produção') {
+                         lostCards.push({ ...card, fix: 'Atualizar página para "Produção"' });
+                         foundIssue = true;
+                    }
+                    if (card.pagina === 'Arquivo' && productionStatuses.includes(card.status)) {
+                        lostCards.push({ ...card, fix: 'Atualizar página para "Produção" (estava arquivado incorretamente)' });
+                        foundIssue = true;
+                    }
+                    if (typeof card.pagina === 'undefined' && card.status && card.status.startsWith('Produção')) {
+                        lostCards.push({ ...card, fix: 'Atualizar página para "Produção"' });
+                        foundIssue = true;
+                    }
+
+                    if (!foundIssue) {
+                        lostCards.push({ ...card, fix: 'Nenhum problema detectado pelas regras automáticas.' });
+                    }
                 });
                 renderResults();
 
@@ -201,14 +228,21 @@
             
             lostCards.forEach(card => {
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'prospects', card.id);
-                let updateData = {};
 
+                if (card.fix.includes('Nenhum problema detectado')) {
+                    return;
+                }
+
+                const updateData = {};
                 if (card.fix.includes('Atualizar status')) {
                     updateData.status = 'Produção // V1';
                 } else if (card.fix.includes('Atualizar página')) {
                     updateData.pagina = 'Produção';
                 }
-                batch.update(docRef, updateData);
+
+                if (Object.keys(updateData).length > 0) {
+                    batch.update(docRef, updateData);
+                }
             });
 
             try {

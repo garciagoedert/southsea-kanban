@@ -461,13 +461,22 @@
         }
 
         // --- RENDERING ---
+        const statusEquivalence = {
+            'Base': ['Base', 'Pendente'],
+            'Back': ['Back', 'Contactado'],
+            'M1': ['M1', 'Reunião'],
+            'M2': ['M2', 'Proposta'],
+            'M3': ['M3', 'Fechado']
+        };
+
         function renderBoard() {
             kanbanBoard.innerHTML = ''; 
             const isMobile = window.innerWidth < 768;
 
             COLUMN_NAMES.forEach(status => {
                 const columnId = COLUMNS[status];
-                const columnProspects = filteredProspects.filter(p => p.status === status);
+                const equivalentStatuses = statusEquivalence[status] || [status];
+                const columnProspects = filteredProspects.filter(p => equivalentStatuses.includes(p.status));
                 
                 const columnEl = document.createElement('div');
                 
@@ -632,12 +641,12 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
             const priority = document.getElementById('priorityFilter').value;
             const tag = document.getElementById('tagFilter').value;
-            const prospectingStatuses = Object.keys(COLUMNS);
+            const allValidStatuses = ['Base', 'Pendente', 'Back', 'Contactado', 'M1', 'Reunião', 'M2', 'Proposta', 'M3', 'Fechado'];
 
 
             filteredProspects = prospects.filter(p => {
-                const isProspecting = prospectingStatuses.includes(p.status);
-                if (!isProspecting) return false;
+                const isValidStatus = allValidStatuses.includes(p.status);
+                if (!isValidStatus) return false;
 
                 const matchSearch = !search || p.empresa.toLowerCase().includes(search) || (p.setor && p.setor.toLowerCase().includes(search));
                 const matchPriority = !priority || p.prioridade.toString() === priority;
