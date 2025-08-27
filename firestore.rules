@@ -29,6 +29,25 @@ service cloud.firestore {
       allow update, delete: if request.auth != null;
     }
 
+    // Regras para Mapas Mentais
+    match /artifacts/{appId}/public/data/mind-maps/{mapId} {
+      // Permite a um usuário autenticado criar um mapa mental.
+      allow create: if request.auth != null;
+      // Permite ler, atualizar e deletar apenas se o usuário for o dono do mapa.
+      allow read, update, delete: if request.auth != null && resource.data.owner == request.auth.uid;
+
+      // Regras para os nós dentro de um mapa mental
+      match /nodes/{nodeId} {
+        // Permite criar, ler, atualizar e deletar nós se o usuário for o dono do mapa pai.
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/mind-maps/$(mapId)).data.owner == request.auth.uid;
+      }
+
+      // Regras para as conexões dentro de um mapa mental
+      match /connections/{connectionId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/mind-maps/$(mapId)).data.owner == request.auth.uid;
+      }
+    }
+
     // Regras para o chat
     match /chats/{chatId} {
       allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
