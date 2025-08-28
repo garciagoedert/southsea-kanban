@@ -15,6 +15,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SortableJS for drag-and-drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
         /* Custom Styles */
@@ -34,6 +36,11 @@
         }
         .drag-over {
             @apply border-dashed border-2 border-blue-500 bg-blue-500/10;
+        }
+        /* Style for the element being dragged */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #4a5568;
         }
     </style>
 </head>
@@ -374,11 +381,13 @@
         }
 
         function setupQuickMessagesListener() {
-            if (quickMessagesListener) quickMessagesListener(); // Unsubscribe from previous listener
+            if (quickMessagesListener) quickMessagesListener();
 
             const messagesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'mensagens_rapidas');
             quickMessagesListener = onSnapshot(messagesCollection, (snapshot) => {
                 quickMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Sort messages by the 'order' field, handling undefined values
+                quickMessages.sort((a, b) => (a.order || 0) - (b.order || 0));
                 renderQuickMessages();
             }, (error) => {
                 console.error("Error fetching quick messages:", error);
@@ -387,7 +396,11 @@
         }
 
         // --- QUICK MESSAGES RENDERING & LOGIC ---
+        let sortableInstance = null;
         function renderQuickMessages() {
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
             messagesListContainer.innerHTML = '';
             const filteredMessages = quickMessages.filter(msg => msg.type === activeMessageType);
 
@@ -398,7 +411,8 @@
 
             filteredMessages.forEach(msg => {
                 const messageEl = document.createElement('div');
-                messageEl.className = 'bg-gray-900 p-3 rounded-lg flex justify-between items-start gap-4';
+                messageEl.className = 'bg-gray-900 p-3 rounded-lg flex justify-between items-start gap-4 cursor-grab';
+                messageEl.dataset.id = msg.id; // Set data-id for sortable
                 messageEl.innerHTML = `
                     <div class="flex-1">
                         <h4 class="font-bold text-white">${msg.title}</h4>
@@ -411,6 +425,16 @@
                     </div>
                 `;
                 messagesListContainer.appendChild(messageEl);
+            });
+
+            // Initialize SortableJS
+            sortableInstance = new Sortable(messagesListContainer, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: function (evt) {
+                    const messageIds = [...messagesListContainer.children].map(child => child.dataset.id);
+                    updateMessagesOrder(messageIds);
+                },
             });
         }
 
@@ -437,6 +461,9 @@
                 }).catch(err => console.error("Error updating message:", err));
             } else { // Create
                 data.createdAt = serverTimestamp();
+                // Set the order for the new message
+                const maxOrder = quickMessages.reduce((max, msg) => Math.max(max, msg.order || 0), 0);
+                data.order = maxOrder + 1;
                 addDoc(collectionRef, data).then(() => {
                     messageForm.classList.add('hidden');
                     messageForm.reset();
@@ -450,6 +477,19 @@
                 await deleteDoc(msgRef);
             } catch (error) {
                 console.error("Error deleting message:", error);
+            }
+        }
+
+        async function updateMessagesOrder(orderedIds) {
+            const batch = writeBatch(db);
+            orderedIds.forEach((id, index) => {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'mensagens_rapidas', id);
+                batch.update(docRef, { order: index });
+            });
+            try {
+                await batch.commit();
+            } catch (error) {
+                console.error("Error updating messages order:", error);
             }
         }
 
